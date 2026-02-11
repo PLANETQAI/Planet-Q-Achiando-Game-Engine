@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Minimalist Game Prompt Input</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6668f0",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#0a0a14",
+                        "surface-dark": "#111126",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { font-family: 'Inter', sans-serif; }
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #242447; border-radius: 10px; }
+        .glow-button {
+            box-shadow: 0 0 20px rgba(102, 104, 240, 0.3);
+            transition: all 0.3s ease;
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 35px rgba(102, 104, 240, 0.5);
+            transform: translateY(-1px);
+        }
+        .glass-panel {
+            background: rgba(17, 17, 38, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(102, 104, 240, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#1a1a35] bg-white dark:bg-background-dark/80 backdrop-blur-md px-8 py-4 sticky top-0 z-50">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-3">
+<div class="size-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight">VibeCoder AI</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-slate-600 dark:text-[#9293c8] hover:text-primary transition-colors text-sm font-semibold" href="#">Dashboard</a>
+<a class="text-slate-600 dark:text-[#9293c8] hover:text-primary transition-colors text-sm font-semibold" href="#">Gallery</a>
+<a class="text-slate-600 dark:text-[#9293c8] hover:text-primary transition-colors text-sm font-semibold" href="#">Docs</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="hidden lg:flex items-center bg-slate-100 dark:bg-[#111126] rounded-xl px-4 py-2 border border-slate-200 dark:border-[#242447] focus-within:border-primary/50 transition-all">
+<span class="material-symbols-outlined text-slate-400 dark:text-[#9293c8] text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 placeholder:text-slate-400 dark:placeholder:text-[#5a5a8a]" placeholder="Search vibes..."/>
+</div>
+<div class="size-10 rounded-full bg-slate-200 dark:bg-[#242447] border-2 border-slate-300 dark:border-primary/20 overflow-hidden cursor-pointer hover:border-primary/50 transition-all">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCi1v5pHFtA8K5n7lF1Vpm8xWPjlSjdVEMk15CdmZhUb5myIrFPGyhgRV_fb73Vf2zge9yzLwFdB9bZVYYU4V_uvDB4tVMb4TNuLtxTVEx-BYWLP8sxP8qJEqlqLv1roW3pe44O-ufA88K7DUDrcbq6NZyHD6dbfoXUOySIC_oiscnOWyl5EhIt30w8LCbMUwDk-oCNT3dUFApqPuJtZfIStu0FgXHj3guOwrtHgK3h4YLzjNwG607-DzbSUSDuTorfm-8ILHzIb9w"/>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center p-6 lg:p-12">
+<div class="w-full max-w-4xl mx-auto flex flex-col gap-12">
+<div class="text-center space-y-4">
+<span class="inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 tracking-widest uppercase">
+                Natural Language Game Synthesis
+            </span>
+<h1 class="text-6xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white">What's the vibe?</h1>
+<p class="text-slate-600 dark:text-[#9293c8] text-xl max-w-2xl mx-auto leading-relaxed">
+                Describe the universe you want to inhabit. Our engine will synthesize the logic, assets, and atmosphere.
+            </p>
+</div>
+<div class="flex flex-col gap-8">
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary/40 to-purple-600/40 rounded-[2rem] blur-xl opacity-20 group-focus-within:opacity-60 transition duration-700"></div>
+<div class="relative flex flex-col glass-panel dark:bg-surface-dark/80 rounded-[2rem] shadow-2xl transition-all border-2 border-slate-200 dark:border-[#242447] group-focus-within:border-primary/40">
+<textarea class="w-full min-h-[320px] bg-transparent border-none focus:ring-0 p-10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#3a3a6a] text-2xl leading-relaxed resize-none font-medium" placeholder="A high-stakes cyberpunk racing game set in a rainy Neo-Tokyo, where music affects your car's speed. Low-poly aesthetics with heavy neon blooming..."></textarea>
+<div class="flex items-center justify-between px-10 py-6 border-t border-slate-100 dark:border-[#242447]/50">
+<div class="flex gap-4">
+<button class="flex items-center gap-2 px-5 py-2.5 hover:bg-slate-100 dark:hover:bg-[#1a1a35] rounded-xl text-slate-500 dark:text-[#9293c8] transition-all text-sm font-semibold">
+<span class="material-symbols-outlined text-xl">mic</span>
+                                Voice Vibe
+                            </button>
+<button class="flex items-center gap-2 px-5 py-2.5 hover:bg-slate-100 dark:hover:bg-[#1a1a35] rounded-xl text-slate-500 dark:text-[#9293c8] transition-all text-sm font-semibold">
+<span class="material-symbols-outlined text-xl">image_search</span>
+                                Mood Board
+                            </button>
+</div>
+<div class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50 dark:bg-white/5 text-[10px] text-slate-400 dark:text-[#5a5a8a] font-black uppercase tracking-widest border border-slate-100 dark:border-white/5">
+<span class="material-symbols-outlined text-sm">keyboard_command_key</span>
+<span>+ Enter to Spark</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-center gap-6">
+<button class="w-full lg:w-4/5 glow-button bg-primary hover:bg-primary/90 text-white h-24 rounded-[2rem] font-black text-3xl flex items-center justify-center gap-4 transition-all active:scale-[0.98] group relative overflow-hidden">
+<span class="relative z-10 flex items-center gap-4">
+<span class="material-symbols-outlined text-4xl group-hover:scale-110 transition-transform">bolt</span>
+                        Generate Game World
+                    </span>
+<div class="absolute inset-0 bg-white/20 w-[15%] blur-2xl -skew-x-[30deg] -translate-x-full group-hover:translate-x-[800%] transition-all duration-1000 ease-in-out"></div>
+</button>
+<div class="flex items-center gap-4 px-6 py-2 rounded-full bg-white/5 border border-white/5 text-slate-500 dark:text-[#5a5a8a] text-xs font-bold uppercase tracking-widest">
+<span class="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#6668f0]"></span>
+                    Ready to manifest your creative vision
+                </div>
+</div>
+</div>
+</div>
+</main>
+<footer class="h-14 bg-white dark:bg-background-dark/80 border-t border-slate-200 dark:border-[#1a1a35] px-10 flex items-center justify-between text-[10px] text-[#5a5a8a] font-bold uppercase tracking-[0.25em]">
+<div class="flex gap-8">
+<span class="flex items-center gap-2"><span class="size-1.5 rounded-full bg-emerald-500"></span> Engine: Online</span>
+<span class="opacity-60">Session: #VB-9921</span>
+<span class="opacity-60">GPU: RTX-Cloud-Active</span>
+</div>
+<div class="flex gap-8">
+<a class="hover:text-primary transition-colors" href="#">Legal</a>
+<a class="hover:text-primary transition-colors" href="#">Support</a>
+<a class="hover:text-primary transition-colors" href="#">Community</a>
+</div>
+</footer>
+
+</body></html>
