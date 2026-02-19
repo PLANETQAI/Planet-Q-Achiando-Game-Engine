@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { VibeCoderOverlay } from './vibe-coder';
+import VibeCoderOverlay from './vibe-coder/VibeCoderOverlay';
 import GamePreview from './GamePreview';
 import { getGameById } from '@/lib/gameRegistry';
 import { selectGameId } from '@/lib/gameSelector';

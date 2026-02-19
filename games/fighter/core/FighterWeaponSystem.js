@@ -22,6 +22,8 @@ export default class WeaponSystem {
 
         if (type === 'melee') {
             this.fireMelee(x, y, config);
+        } else if (type === 'super') {
+            this.fireSuper(x, y, config);
         } else {
             this.fireProjectile(x, y, config);
         }
@@ -174,6 +176,52 @@ export default class WeaponSystem {
         }
 
         this.scene.time.delayedCall(150, () => hitbox.destroy());
+    }
+
+    fireSuper(x, y, config) {
+        const source = config.source || this.scene.player;
+        const dir = source.flipX ? -1 : 1;
+
+        // Cinematic Freeze
+        this.applyHitStop(500);
+        this.scene.cameras.main.flash(500, 255, 255, 255);
+        if (this.scene.juice) this.scene.juice.shake(500, 0.05);
+
+        // Visual Blast
+        const blast = this.scene.add.sprite(x + (150 * dir), y, 'bullet_light');
+        blast.setScale(0.1, 10);
+        blast.setAlpha(1);
+        blast.setTint(0xff00ff);
+        blast.setDepth(200);
+
+        this.scene.tweens.add({
+            targets: blast,
+            scaleX: 20,
+            alpha: 0,
+            duration: 400,
+            ease: 'Expo.out',
+            onComplete: () => blast.destroy()
+        });
+
+        // Massive Hitbox
+        const hitbox = this.scene.add.rectangle(x + (300 * dir), y, 600, 200, 0xffffff, 0);
+        this.scene.physics.add.existing(hitbox);
+        hitbox.body.setAllowGravity(false);
+        hitbox.isMelee = true;
+        hitbox.damage = config.damage || 15;
+        hitbox.isSuper = true;
+
+        this.scene.physics.overlap(hitbox, this.scene.fighters, (h, target) => {
+            if (target !== source) {
+                this.scene.collisions.handleBulletFighterCollision(h, target);
+            }
+        });
+
+        this.scene.physics.overlap(hitbox, this.scene.spawner.enemies, (h, target) => {
+            this.scene.collisions.handleBulletEnemyCollision(h, target);
+        });
+
+        this.scene.time.delayedCall(300, () => hitbox.destroy());
     }
 
     applyHitStop(duration) {

@@ -129,7 +129,8 @@ export default class BaseShooter extends Phaser.Scene {
         this.movement = new MovementManager(this, this.player);
 
         // Setup Collisions
-        this.collisions.setup(this.player, this.spawner.enemies, this.weapons.projectiles);
+        this.powerUps = this.physics.add.group();
+        this.collisions.setup(this.player, this.spawner.enemies, this.weapons.projectiles, this.powerUps);
 
         // Event Listeners
         this.events.on('playerHit', this.handlePlayerHit, this);
@@ -138,6 +139,15 @@ export default class BaseShooter extends Phaser.Scene {
         this.spawner.spawnWave(this.gameConfig.spawn);
 
         this.cursors = this.input.keyboard.createCursorKeys();
+        this.keys = this.input.keyboard.addKeys({
+            shift: Phaser.Input.Keyboard.KeyCodes.SHIFT,
+            bomb: Phaser.Input.Keyboard.KeyCodes.X
+        });
+
+        // Advanced Systems Initialization
+        this.polarity = 'light'; // 'light' or 'dark'
+        this.options = [];
+        this.bombs = this.gameConfig.player.bombs || 0;
 
         // UI Layer
         this.createUI();
@@ -194,14 +204,23 @@ export default class BaseShooter extends Phaser.Scene {
         this.bossContainer.add([this.bossNameText, this.bossBarBg, this.bossBar]);
     }
 
-    handlePlayerHit() {
+    handlePlayerHit(fighter) {
         if (this.isGameOver) return;
 
-        this.hp--;
-        this.updateHealthBar();
+        // If no fighter passed, assume main player
+        const target = fighter || this.player;
 
-        if (this.hp <= 0) {
-            this.gameOver('HULL BREACHED');
+        if (target === this.player) {
+            this.hp--;
+            this.updateHealthBar();
+            if (this.hp <= 0) {
+                this.gameOver('HULL BREACHED');
+            }
+        } else if (target.hp !== undefined) {
+            target.hp--;
+            if (target.hp <= 0) {
+                target.destroy();
+            }
         }
     }
 
@@ -212,6 +231,121 @@ export default class BaseShooter extends Phaser.Scene {
         if (percent < 0.3) this.healthBar.setFillStyle(0xff0000);
         else if (percent < 0.6) this.healthBar.setFillStyle(0xffff00);
         else this.healthBar.setFillStyle(0x00ff00);
+    }
+
+    switchPolarity() {
+        this.polarity = this.polarity === 'light' ? 'dark' : 'light';
+        const color = this.polarity === 'light' ? 0xffffff : 0x444444;
+        this.player.setTint(color);
+        if (this.juice) this.juice.flash(this.player, 50, color);
+    }
+
+    useBomb() {
+        if (this.bombs <= 0) return;
+        this.bombs--;
+
+        // Flash screen
+        this.cameras.main.flash(500, 255, 255, 255);
+        if (this.juice) this.juice.shake(500, 0.03);
+
+        // Clear all enemy projectiles
+        this.weapons.enemyProjectiles.clear(true, true);
+
+        // Damage all active enemies
+        this.spawner.enemies.children.each(enemy => {
+            if (enemy.active) {
+                if (enemy.isBoss) enemy.hp -= 20;
+                else enemy.destroy();
+            }
+        });
+    }
+
+    addOption() {
+        const option = this.physics.add.sprite(this.player.x, this.player.y, 'player');
+        option.setScale(this.player.scale * 0.6);
+        option.setAlpha(0.7);
+        option.setTint(0x00ffff);
+        option.history = [];
+        this.options.push(option);
+    }
+
+    spawnPowerUp(x, y) {
+        if (this.isGameOver) return;
+        const types = ['health', 'speed', 'weapon', 'option'];
+        const type = Phaser.Utils.Array.GetRandom(types);
+        const icon = type === 'health' ? '❤️' : (type === 'speed' ? '⚡' : (type === 'option' ? '🛸' : '🔥'));
+
+        const p = this.add.text(x, y, icon, { fontSize: '24px' }).setOrigin(0.5);
+        this.physics.add.existing(p);
+        this.powerUps.add(p);
+        p.type = type;
+
+        const isHorizontal = this.gameConfig.orientation === 'horizontal';
+        if (isHorizontal) {
+            p.body.setVelocityX(-100);
+        } else {
+            p.body.setVelocityY(100);
+        }
+
+        // Float effect
+        this.tweens.add({
+            targets: p,
+            scale: 1.2,
+            duration: 500,
+            yoyo: true,
+            loop: -1
+        });
+    }
+
+    handlePowerUpCollision(player, powerUp) {
+        const type = powerUp.type;
+        powerUp.destroy();
+
+        if (this.juice) this.juice.flash(player);
+        this.cameras.main.flash(200, 0, 255, 255, true);
+
+        switch (type) {
+            case 'health':
+                this.hp = Math.min(this.maxHp, this.hp + 2);
+                this.updateHealthBar();
+                break;
+            case 'speed':
+                const oldSpeed = this.gameConfig.player.speed;
+                this.gameConfig.player.speed *= 1.5;
+                this.time.delayedCall(5000, () => {
+                    this.gameConfig.player.speed = oldSpeed;
+                });
+                break;
+            case 'option':
+                this.addOption();
+                break;
+            case 'weapon':
+                const oldWeapon = { ...this.gameConfig.weapon };
+                // Upgrade to Triple Shot or Beam
+                const upgradeType = Math.random() > 0.5 ? 'beam' : 'homing';
+
+                if (upgradeType === 'beam') {
+                    this.gameConfig.weapon = {
+                        ...oldWeapon,
+                        type: 'beam',
+                        fireRate: 800,
+                        damage: 5
+                    };
+                } else {
+                    this.gameConfig.weapon = {
+                        ...oldWeapon,
+                        homing: true,
+                        fireRate: 150,
+                        bulletCount: 2,
+                        spread: 0.5
+                    };
+                }
+
+                this.time.delayedCall(8000, () => {
+                    this.gameConfig.weapon = oldWeapon;
+                });
+                break;
+        }
     }
 
     gameOver(reason) {
@@ -288,8 +422,38 @@ export default class BaseShooter extends Phaser.Scene {
 
         // Firing
         if (this.cursors.space.isDown) {
-            this.weapons.fire(this.player.x, this.player.y, this.gameConfig.weapon);
+            const weaponConfig = { ...this.gameConfig.weapon, polarity: this.polarity };
+            this.weapons.fire(this.player.x, this.player.y, weaponConfig);
+
+            // Options fire
+            this.options.forEach(opt => {
+                this.weapons.fire(opt.x, opt.y, { ...weaponConfig, source: opt });
+            });
         }
+
+        // Advanced Inputs
+        if (Phaser.Input.Keyboard.JustDown(this.keys.shift)) {
+            this.switchPolarity();
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.keys.bomb)) {
+            this.useBomb();
+        }
+
+        // Update Options Movement (Delay following)
+        const historySize = 20;
+        this.options.forEach((opt, index) => {
+            const targetIndex = (index + 1) * 15;
+            // Record player position
+            if (!this.playerHistory) this.playerHistory = [];
+            this.playerHistory.unshift({ x: this.player.x, y: this.player.y });
+            if (this.playerHistory.length > 100) this.playerHistory.pop();
+
+            const pos = this.playerHistory[Math.min(targetIndex, this.playerHistory.length - 1)];
+            if (pos) {
+                opt.x = pos.x;
+                opt.y = pos.y;
+            }
+        });
 
         this.weapons.update();
         this.spawner.update();

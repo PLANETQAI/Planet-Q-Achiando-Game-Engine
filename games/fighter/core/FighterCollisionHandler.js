@@ -51,7 +51,31 @@ export default class CollisionHandler {
         if (projectile.source === fighter) return;
         if (projectile.source?.team && fighter.team && projectile.source.team === fighter.team) return;
 
-        // 1. Check Blocking
+        // 1. Check Parry / Blocking
+        const isPerfect = fighter.isBlocking && (this.scene.time.now - fighter.lastBlockTime < 100);
+
+        if (isPerfect) {
+            // Parry!
+            fighter.setTint(0xffff00);
+            if (this.scene.juice) {
+                this.scene.juice.hitStop(200);
+                this.scene.juice.explode(fighter.x, fighter.y, 'fire');
+            }
+            // Stun Attacker
+            if (projectile.source && projectile.source.active) {
+                projectile.source.isHitStunned = true;
+                projectile.source.setTint(0x00ffff);
+                this.scene.time.delayedCall(1000, () => {
+                    if (projectile.source.active) {
+                        projectile.source.isHitStunned = false;
+                        projectile.source.clearTint();
+                    }
+                });
+            }
+            projectile.destroy();
+            return;
+        }
+
         if (fighter.isBlocking) {
             // Blockstun & Shield Feedback
             fighter.isBlockStunned = true;
@@ -129,6 +153,12 @@ export default class CollisionHandler {
         if (this.scene.handlePlayerHit) {
             this.scene.handlePlayerHit(fighter, projectile.damage || 1);
         }
+
+        // Add Meter on Hit
+        if (projectile.source && projectile.source.active) {
+            projectile.source.meter = Math.min(projectile.source.maxMeter, (projectile.source.meter || 0) + 5);
+        }
+        fighter.meter = Math.min(fighter.maxMeter, (fighter.meter || 0) + 2); // Meter for taking damage too
     }
 
     handlePlayerEnemyCollision(player, enemy) {

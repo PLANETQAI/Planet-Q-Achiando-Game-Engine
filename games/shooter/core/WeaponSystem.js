@@ -5,7 +5,13 @@ export default class WeaponSystem {
         this.scene = scene;
         this.projectiles = scene.physics.add.group({
             classType: Phaser.Physics.Arcade.Image,
-            maxSize: 50,
+            maxSize: 100,
+            runChildUpdate: true
+        });
+
+        this.enemyProjectiles = scene.physics.add.group({
+            classType: Phaser.Physics.Arcade.Image,
+            maxSize: 100,
             runChildUpdate: true
         });
 
@@ -22,6 +28,8 @@ export default class WeaponSystem {
 
         if (type === 'melee') {
             this.fireMelee(x, y, config);
+        } else if (type === 'beam') {
+            this.fireBeam(x, y, config);
         } else {
             this.fireProjectile(x, y, config);
         }
@@ -39,12 +47,23 @@ export default class WeaponSystem {
         const bulletCount = config.bulletCount || 1;
         const spread = config.spread || 0;
 
+        const isEnemy = config.source && config.source !== this.scene.player;
+        const group = isEnemy ? this.enemyProjectiles : this.projectiles;
+
         for (let i = 0; i < bulletCount; i++) {
-            const projectile = this.projectiles.get(x, y, assetKey);
+            const projectile = group.get(x, y, assetKey);
             if (projectile) {
                 projectile.setActive(true);
                 projectile.setVisible(true);
                 projectile.setOrigin(0.5, 0.5);
+                projectile.isEnemy = isEnemy;
+                projectile.polarity = config.polarity || 'light';
+
+                if (projectile.polarity === 'dark') {
+                    projectile.setTint(0x444444);
+                } else {
+                    projectile.clearTint();
+                }
 
                 const speed = config.bulletSpeed || (type === 'missile' ? 300 : 500);
                 const isHorizontal = this.scene.gameConfig.orientation === 'horizontal';
@@ -67,21 +86,24 @@ export default class WeaponSystem {
                     projectile.setVelocity(speed * dir, 0);
                     projectile.flipX = source.flipX;
                 } else if (isHorizontal) {
-                    const vx = speed * Math.cos(angle);
+                    const vx = speed * Math.cos(angle) * (isEnemy ? -1 : 1);
                     const vy = speed * Math.sin(angle);
                     projectile.setVelocity(vx, vy);
-                    projectile.setRotation(angle + Math.PI / 2);
+                    projectile.setRotation(angle + (isEnemy ? -Math.PI / 2 : Math.PI / 2));
                 } else {
                     const vx = speed * Math.sin(angle);
-                    const vy = -speed * Math.cos(angle);
+                    const vy = speed * Math.cos(angle) * (isEnemy ? 1 : -1);
                     projectile.setVelocity(vx, vy);
                     if (type === 'missile') {
-                        projectile.setRotation(angle);
+                        projectile.setRotation(angle + (isEnemy ? Math.PI : 0));
                     }
                 }
 
                 if (config.scale) projectile.setScale(config.scale);
                 else projectile.setScale(0.5);
+
+                projectile.homing = config.homing;
+                projectile.homingTarget = config.homingTarget;
 
                 // Premium: Muzzle Flash & Screen Shake (if source is player)
                 if (this.scene.juice) {
@@ -158,6 +180,42 @@ export default class WeaponSystem {
         this.scene.time.delayedCall(config.isHeavy ? 300 : 150, () => hitbox.destroy());
     }
 
+    fireBeam(x, y, config) {
+        const isHorizontal = this.scene.gameConfig.orientation === 'horizontal';
+        const source = config.source || this.scene.player;
+        const width = isHorizontal ? 800 : 40;
+        const height = isHorizontal ? 40 : 800;
+
+        const bX = isHorizontal ? x + 400 : x;
+        const bY = isHorizontal ? y : y - 400;
+
+        const beam = this.scene.add.rectangle(bX, bY, width, height, 0x00ffff, 0.5);
+        this.scene.physics.add.existing(beam);
+        beam.body.setAllowGravity(false);
+
+        // Visual FX
+        this.scene.tweens.add({
+            targets: beam,
+            fillAlpha: 1,
+            scaleX: isHorizontal ? 1 : 2,
+            scaleY: isHorizontal ? 2 : 1,
+            duration: 100,
+            yoyo: true,
+            onComplete: () => beam.destroy()
+        });
+
+        // Collision
+        const targetGroup = (config.source === this.scene.player || !config.source)
+            ? this.scene.spawner.enemies
+            : this.scene.player;
+
+        this.scene.physics.overlap(beam, targetGroup, (b, target) => {
+            if (this.scene.collisions) {
+                this.scene.collisions.handleBulletEnemyCollision({ damage: config.damage || 5, isMelee: true }, target);
+            }
+        });
+    }
+
     applyHitStop(duration) {
         // "Hit Stop" effect - freeze the world for a few frames
         const originalSpeeds = [];
@@ -194,13 +252,40 @@ export default class WeaponSystem {
     }
 
     update() {
-        this.projectiles.children.each(projectile => {
-            if (projectile.active) {
-                if (projectile.y < -100 || projectile.y > 700 || projectile.x < -100 || projectile.x > 900) {
-                    projectile.setActive(false);
-                    projectile.setVisible(false);
+        const time = this.scene.time.now;
+        [this.projectiles, this.enemyProjectiles].forEach(group => {
+            group.children.each(projectile => {
+                if (projectile.active) {
+                    // Homing Logic
+                    if (projectile.homing) {
+                        const targets = projectile.isEnemy ? [this.scene.player] : this.scene.spawner.enemies.getChildren();
+                        let nearest = null;
+                        let minDist = 1000;
+
+                        targets.forEach(t => {
+                            if (!t.active) return;
+                            const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, t.x, t.y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                nearest = t;
+                            }
+                        });
+
+                        if (nearest) {
+                            const angle = Phaser.Math.Angle.Between(projectile.x, projectile.y, nearest.x, nearest.y);
+                            const speed = projectile.body.speed || 400;
+                            projectile.body.velocity.x = Math.cos(angle) * speed;
+                            projectile.body.velocity.y = Math.sin(angle) * speed;
+                            projectile.setRotation(angle + Math.PI / 2);
+                        }
+                    }
+
+                    if (projectile.y < -150 || projectile.y > 750 || projectile.x < -150 || projectile.x > 950) {
+                        projectile.setActive(false);
+                        projectile.setVisible(false);
+                    }
                 }
-            }
+            });
         });
     }
 }

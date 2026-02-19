@@ -96,6 +96,7 @@ export default class BaseFighter extends Phaser.Scene {
             fighter.body.setAllowGravity(true);
             fighter.body.setDragX(1000); // Friction for "Grounded" feel
             fighter.setDepth(100);
+            fighter.body.onWorldBounds = true;
 
             // Custom properties
             fighter.hp = fConfig.hp || 10;
@@ -115,6 +116,8 @@ export default class BaseFighter extends Phaser.Scene {
             fighter.lastAttackTime = 0;
             fighter.attackCharge = 0;
             fighter.isCharging = false;
+            fighter.meter = 0;
+            fighter.maxMeter = 100;
 
             // Movement Manager per fighter
             fighter.movement = new MovementManager(this, fighter);
@@ -150,6 +153,21 @@ export default class BaseFighter extends Phaser.Scene {
 
         // Spawn Wave
         this.spawner.spawnWave(this.gameConfig.spawn);
+
+        // Wall Bounce Listener
+        this.physics.world.on('worldbounds', (body) => {
+            const fighter = body.gameObject;
+            if (fighter && fighter.isHitStunned && !fighter.hasBounced) {
+                const bounceDir = fighter.x < 100 ? 1 : -1;
+                fighter.setVelocityX(bounceDir * 600);
+                fighter.setVelocityY(-400); // Popup on bounce
+                fighter.hasBounced = true;
+                if (this.juice) this.juice.shake(100, 0.02);
+
+                // Reset bounce flag after a while
+                this.time.delayedCall(500, () => { fighter.hasBounced = false; });
+            }
+        });
 
         this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -215,7 +233,11 @@ export default class BaseFighter extends Phaser.Scene {
             const bg = this.add.rectangle(700, y + 7, 150, 15, 0x333333).setScrollFactor(0);
             const bar = this.add.rectangle(700, y + 7, 150, 15, 0x00ff00).setScrollFactor(0);
 
-            this.fighterUI.push({ name, bg, bar });
+            // Meter Bar
+            const meterBg = this.add.rectangle(700, y + 20, 150, 8, 0x222222).setScrollFactor(0);
+            const meterBar = this.add.rectangle(700, y + 20, 0, 8, 0x00ffff).setScrollFactor(0);
+
+            this.fighterUI.push({ name, bg, bar, meterBg, meterBar });
         });
     }
 
@@ -295,10 +317,15 @@ export default class BaseFighter extends Phaser.Scene {
             }
 
             if (fighter.isBlocking) {
+                if (!fighter.wasBlocking) {
+                    fighter.lastBlockTime = this.time.now;
+                }
+                fighter.wasBlocking = true;
                 fighter.setVelocityX(0);
                 fighter.setTint(0x888888);
                 fighter.setAngle(0);
             } else {
+                fighter.wasBlocking = false;
                 fighter.clearTint();
             }
 
@@ -312,26 +339,29 @@ export default class BaseFighter extends Phaser.Scene {
                     fighter.setTint(0xffff00);
                     if (Math.random() > 0.8) this.juice.explode(fighter.x, fighter.y, 'sparks');
                 }
-            } else if (Phaser.Input.Keyboard.JustUp(controls.space) && fighter.isCharging) {
-                const isHeavy = fighter.attackCharge > 500;
-                const isDive = !isGrounded && controls.down.isDown;
-
-                if (isDive) {
-                    fighter.setVelocityY(1000);
-                    fighter.setVelocityX(0);
-                }
-
-                this.weapons.fire(fighter.x, fighter.y, {
-                    ...this.gameConfig.weapon,
-                    source: fighter,
-                    isHeavy: isHeavy,
-                    isDive: isDive,
-                    scale: isHeavy ? (this.gameConfig.weapon.scale * 2) : (isDive ? 1.5 : this.gameConfig.weapon.scale)
-                });
-
                 fighter.isCharging = false;
                 fighter.attackCharge = 0;
                 fighter.clearTint();
+
+                // Special / Super Logic
+                const isSuper = fighter.meter >= 100 && controls.space.isDown && controls.down.isDown;
+                if (isSuper) {
+                    fighter.meter = 0;
+                    this.weapons.fire(fighter.x, fighter.y, {
+                        ...this.gameConfig.weapon,
+                        source: fighter,
+                        type: 'super',
+                        damage: 10
+                    });
+                } else {
+                    this.weapons.fire(fighter.x, fighter.y, {
+                        ...this.gameConfig.weapon,
+                        source: fighter,
+                        isHeavy: isHeavy,
+                        isDive: isDive,
+                        scale: isHeavy ? (this.gameConfig.weapon.scale * 2) : (isDive ? 1.5 : this.gameConfig.weapon.scale)
+                    });
+                }
             }
 
             // 4. Corner Pushback Logic
@@ -522,7 +552,11 @@ export default class BaseFighter extends Phaser.Scene {
             if (this.fighterUI[index]) {
                 const ui = this.fighterUI[index];
                 const percent = Math.max(0, fighter.hp / fighter.maxHp);
-                ui.bar.width = 150 * percent;
+                // Meter Progress
+                const meterPercent = Math.min(1, fighter.meter / fighter.maxMeter);
+                ui.meterBar.width = 150 * meterPercent;
+                if (meterPercent >= 1) ui.meterBar.setFillStyle(0xffffff);
+                else ui.meterBar.setFillStyle(0x00ffff);
 
                 // Color change based on health
                 if (percent < 0.3) ui.bar.setFillStyle(0xff0000);

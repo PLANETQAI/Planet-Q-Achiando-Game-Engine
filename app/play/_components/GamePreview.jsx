@@ -9,7 +9,7 @@ const PhaserGame = dynamic(() => import('./PhaserGame'), { ssr: false });
 export default function GamePreview({ gameConfig, status, autoPlay }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [scenes, setScenes] = useState({ shooter: null, racing: null });
+    const [scenes, setScenes] = useState({ shooter: null, racing: null, platformer: null });
     const hasAutoPlayed = useRef(false);
 
     useEffect(() => {
@@ -22,17 +22,20 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
     useEffect(() => {
         const loadScenes = async () => {
             try {
-                const [shooterMod, racingMod, skyRacerMod, fighterMod] = await Promise.all([
+                const [shooterMod, racingMod, skyRacerMod, fighterMod, platformerMod, puzzleMod] = await Promise.all([
                     import('@/games/shooter/core/BaseShooter'),
                     import('@/games/racing/core/BaseRacer'),
                     import('@/games/racing/core/SkyRacer'),
-                    import('@/games/fighter/core/BaseFighter')
+                    import('@/games/fighter/core/BaseFighter'),
+                    import('@/games/platformer/core/BasePlatformer'),
+                    import('@/games/puzzle/core/BasePuzzle')
                 ]);
                 setScenes({
                     shooter: shooterMod.default,
                     racing: racingMod.default,
                     skyRacer: skyRacerMod.default,
-                    fighter: fighterMod.default
+                    fighter: fighterMod.default,
+                    platformer: platformerMod.default
                 });
             } catch (error) {
                 console.error('Failed to load game scenes:', error);
@@ -47,7 +50,9 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
             ? scenes.skyRacer
             : gameConfig?.category === 'fighting'
                 ? scenes.fighter
-                : scenes.shooter;
+                : gameConfig?.category === 'platformer'
+                    ? scenes.platformer
+                    : scenes.shooter;
 
     const handlePlay = () => {
         if (!activeScene) {

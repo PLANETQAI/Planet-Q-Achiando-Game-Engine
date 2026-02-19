@@ -91,6 +91,26 @@ export default class SpawnManager {
         }
 
         enemy.setCollideWorldBounds(false);
+
+        // Polarity Support
+        if (this.waveConfig?.polarity) {
+            enemy.polarity = this.waveConfig.polarity;
+            const color = enemy.polarity === 'light' ? 0xffffff : 0x444444;
+            enemy.setTint(color);
+        }
+
+        // Advanced: Combat Logic
+        if (this.waveConfig?.fireRate) {
+            enemy.lastFired = this.scene.time.now + Phaser.Math.Between(0, this.waveConfig.fireRate);
+            enemy.fireConfig = {
+                fireRate: this.waveConfig.fireRate,
+                bulletSpeed: this.waveConfig.bulletSpeed || 300,
+                type: this.waveConfig.bulletType || 'bullet',
+                asset: this.waveConfig.bulletAsset || 'bullet_red',
+                scale: this.waveConfig.bulletScale || 0.4,
+                source: enemy
+            };
+        }
     }
 
     spawnBoss(config) {
@@ -187,6 +207,15 @@ export default class SpawnManager {
                         } else { // Grid enemy
                             enemy.setVelocityX(this.moveSpeed * multiplier * this.moveDirection);
                         }
+                    }
+                }
+
+                // AI Shooting
+                if (enemy.fireConfig) {
+                    const time = this.scene.time.now;
+                    if (time > enemy.lastFired + enemy.fireConfig.fireRate) {
+                        this.scene.weapons.fire(enemy.x, enemy.y, enemy.fireConfig);
+                        enemy.lastFired = time;
                     }
                 }
             }

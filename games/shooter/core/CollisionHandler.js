@@ -4,10 +4,20 @@ export default class CollisionHandler {
         this.scene = scene;
     }
 
-    setup(playerOrGroup, enemies, projectiles) {
+    setup(playerOrGroup, enemies, projectiles, powerUps) {
         // Player/Fighters vs Enemies
         this.scene.physics.add.overlap(projectiles, enemies, this.handleBulletEnemyCollision, null, this);
         this.scene.physics.add.overlap(playerOrGroup, enemies, this.handlePlayerEnemyCollision, null, this);
+
+        // Power-ups
+        if (powerUps) {
+            this.scene.physics.add.overlap(playerOrGroup, powerUps, this.scene.handlePowerUpCollision, null, this.scene);
+        }
+
+        // Enemy Projectiles vs Player/Fighters
+        if (this.scene.weapons.enemyProjectiles) {
+            this.scene.physics.add.overlap(this.scene.weapons.enemyProjectiles, playerOrGroup, this.handleBulletFighterCollision, null, this);
+        }
 
         // Fighters vs Fighters (1v1 support)
         if (playerOrGroup.getChildren) {
@@ -17,6 +27,18 @@ export default class CollisionHandler {
 
     handleBulletEnemyCollision(projectile, enemy) {
         if (!enemy.active) return;
+
+        // Polarity Logic
+        if (enemy.polarity && projectile.polarity) {
+            if (enemy.polarity === projectile.polarity) {
+                // Absorbed or reduced damage
+                projectile.destroy();
+                return;
+            } else {
+                // Opposite polarity: Double damage
+                projectile.damage = (projectile.damage || 1) * 2;
+            }
+        }
 
         // Don't hit self with projectiles
         if (projectile.source === enemy) return;
@@ -75,6 +97,11 @@ export default class CollisionHandler {
         if (this.scene.addScore) {
             this.scene.addScore(100);
         }
+
+        // Power-up Drop Logic
+        if (this.scene.spawnPowerUp && Math.random() < 0.15) { // 15% chance
+            this.scene.spawnPowerUp(x, y);
+        }
     }
 
     handleBulletFighterCollision(projectile, fighter) {
@@ -83,6 +110,17 @@ export default class CollisionHandler {
         // Don't hit self or teammates
         if (projectile.source === fighter) return;
         if (projectile.source?.team && fighter.team && projectile.source.team === fighter.team) return;
+
+        // Polarity Logic for Player
+        if (this.scene.polarity && projectile.isEnemy) {
+            const projectilePolarity = projectile.polarity || 'light';
+            if (this.scene.polarity === projectilePolarity) {
+                // Absorb bullet
+                projectile.destroy();
+                if (this.scene.juice) this.scene.juice.flash(fighter, 50, 0x00ffff);
+                return;
+            }
+        }
 
         // Melee hitboxes shouldn't be destroyed
         if (!projectile.isMelee) {

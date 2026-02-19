@@ -1,7 +1,9 @@
 
 'use client';
 
-import { AssetInitializationGrid, LogicProcessingSession, ChatInterface } from './index';
+import AssetInitializationGrid from './AssetInitializationGrid';
+import LogicProcessingSession from './LogicProcessingSession';
+import ChatInterface from './ChatInterface';
 import { Bolt, Loader2 } from 'lucide-react';
 import { getSimulationConfig, VIBE_STEPS } from '@/lib/vibeCoder';
 import { useState, useEffect } from 'react';
