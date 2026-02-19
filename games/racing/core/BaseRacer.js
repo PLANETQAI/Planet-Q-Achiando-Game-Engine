@@ -106,7 +106,7 @@ export default class BaseRacer extends Phaser.Scene {
         if (this.gameConfig.car?.scale) this.car.setScale(this.gameConfig.car.scale);
         this.car.setCollideWorldBounds(true);
         this.car.setDamping(true);
-        this.car.setDrag(0.95);
+        this.car.setDrag(this.gameConfig.car.drag || 0.95);
 
         // Groups
         this.obstacles = this.physics.add.group();
@@ -178,10 +178,22 @@ export default class BaseRacer extends Phaser.Scene {
         this.physics.add.existing(pad);
         this.speedPads.add(pad);
         pad.body.setVelocityY(400);
+        pad.multiplier = 2; // Default speed boost
 
         // Add arrow indicators
         const arrows = this.add.text(x, -50, '>>>>', { font: 'bold 20px monospace', fill: '#000' }).setOrigin(0.5);
         this.tweens.add({ targets: arrows, y: 700, duration: 2000, onComplete: () => arrows.destroy() });
+    }
+
+    spawnMudZone() {
+        if (this.isGameOver) return;
+        const x = Phaser.Math.Between(150, 650);
+        const mud = this.add.rectangle(x, -100, 150, 80, 0x4b3621, 0.7);
+        this.physics.add.existing(mud);
+        this.speedPads.add(mud); // Reuse speedPads group
+        mud.body.setVelocityY(300);
+        mud.multiplier = 0.4; // Slow down
+        mud.isMud = true;
     }
 
     handleObstacleCollision(car, obstacle) {
@@ -212,13 +224,19 @@ export default class BaseRacer extends Phaser.Scene {
         this.juice.shake(100, 0.01);
         this.juice.explode(car.x, car.y, 'sparks');
 
-        // Speed Boost
+        // Speed/Handling Multiplier
         const originalHandling = this.gameConfig.car.handling;
-        this.gameConfig.car.handling *= 2;
-        this.cameras.main.flash(500, 255, 255, 0);
+        this.gameConfig.car.handling *= (pad.multiplier || 2);
 
-        this.time.delayedCall(2000, () => {
+        if (pad.isMud) {
+            this.car.setTint(0x795548);
+        } else {
+            this.cameras.main.flash(500, 255, 255, 0);
+        }
+
+        this.time.delayedCall(pad.isMud ? 1000 : 2000, () => {
             this.gameConfig.car.handling = originalHandling;
+            if (pad.isMud) this.car.clearTint();
         });
 
         pad.destroy();
