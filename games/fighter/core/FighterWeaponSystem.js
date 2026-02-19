@@ -82,80 +82,98 @@ export default class WeaponSystem {
 
                 if (config.scale) projectile.setScale(config.scale);
                 else projectile.setScale(0.5);
-
-                // Premium: Muzzle Flash & Screen Shake (if source is player)
-                if (this.scene.juice) {
-                    this.scene.juice.muzzleFlash(x, y);
-                    if (this.scene.player === config.source || !config.source) {
-                        this.scene.juice.shake(50, 0.002);
-                    }
-                }
             }
         }
     }
 
     fireMelee(x, y, config) {
-        const isPlatformer = this.scene.gameConfig.category === 'fighting';
         const source = config.source || this.scene.player;
-        const dir = (isPlatformer && source.flipX) ? -1 : 1;
+        const dir = source.flipX ? -1 : 1;
+
+        // Combo Logic
+        const now = this.scene.time.now;
+        if (now - source.lastAttackTime < 800) {
+            source.comboStep = (source.comboStep + 1) % 3;
+        } else {
+            source.comboStep = 0;
+        }
+        source.lastAttackTime = now;
+
+        // Lunge & State
+        const lungeForce = (config.lunge || 300) * (1 + source.comboStep * 0.2);
+        source.setVelocityX(lungeForce * dir);
+        source.isAttacking = true;
+
+        // Squash & Stretch Attack
+        this.scene.tweens.add({
+            targets: source,
+            scaleX: source.config.scale * 1.4,
+            scaleY: source.config.scale * 0.7,
+            duration: 80,
+            yoyo: true,
+            ease: 'Quad.easeOut'
+        });
+
+        this.scene.time.delayedCall(250, () => {
+            source.isAttacking = false;
+        });
 
         // Visual Slash
-        const slash = this.scene.add.sprite(x + (50 * dir), y, 'bullet_light');
-        slash.setScale(0.1, 2);
+        const slashColors = [0xff0000, 0x00ffff, 0xffff00];
+        const slash = this.scene.add.sprite(x + (60 * dir), y, 'bullet_light');
+        slash.setScale(0.1, 2.5 + source.comboStep);
         slash.setAlpha(1);
-        slash.setTint(0x00ffff);
+        slash.setTint(slashColors[source.comboStep]);
         slash.setDepth(15);
         if (dir === -1) slash.flipX = true;
 
-        // Multi-stage animation
         this.scene.tweens.add({
             targets: slash,
-            scaleX: config.direction?.y ? 0.1 : 4,
-            scaleY: config.direction?.y ? 4 : 2,
-            alpha: 0.5,
-            duration: 100,
+            scaleX: 6 + source.comboStep * 2,
+            alpha: 0,
+            duration: 150,
             ease: 'Expo.out',
-            onComplete: () => {
-                this.scene.tweens.add({
-                    targets: slash,
-                    alpha: 0,
-                    scaleX: config.direction?.y ? 0.2 : 6,
-                    scaleY: config.direction?.y ? 6 : 3,
-                    duration: 150,
-                    onComplete: () => slash.destroy()
-                });
-            }
+            onComplete: () => slash.destroy()
         });
 
         // Hitbox
-        const hX = config.direction?.y ? x : x + (60 * dir);
-        const hY = config.direction?.y ? y + (60 * config.direction.y) : y;
-        const hW = config.direction?.y ? 80 : 100;
-        const hH = config.direction?.y ? 100 : 80;
-
-        const hitbox = this.scene.add.rectangle(hX, hY, hW, hH, 0xffffff, 0);
+        const hitbox = this.scene.add.rectangle(x + (80 * dir), y, 140, 120, 0xffffff, 0);
         this.scene.physics.add.existing(hitbox);
         hitbox.body.setAllowGravity(false);
         hitbox.isMelee = true;
-        hitbox.source = source; // Pass source for damage tracking
+        hitbox.damage = 1 + source.comboStep;
+        hitbox.isLauncher = source.comboStep === 2; // 3rd hit launches
+        hitbox.isHeavy = config.isHeavy;
+        hitbox.isDive = config.isDive;
 
-        // Use a generic overlap handled by CollisionHandler if exists
-        // Otherwise use default logic
-        const targetGroup = this.scene.spawner.enemies;
+        const fighters = this.scene.fighters;
+        const enemies = this.scene.spawner.enemies;
 
-        this.scene.physics.overlap(hitbox, targetGroup, (h, target) => {
-            if (this.scene.collisions) {
+        if (enemies) {
+            this.scene.physics.overlap(hitbox, enemies, (h, target) => {
                 this.scene.collisions.handleBulletEnemyCollision(h, target);
-                const stopTime = config.isHeavy ? 300 : 100;
-                this.applyHitStop(stopTime);
-                if (config.isHeavy && this.scene.juice) {
-                    this.scene.juice.shake(300, 0.03);
-                    this.scene.juice.explode(target.x, target.y, 'fire');
-                }
-            }
-        });
+                this.applyHitStop(100 + source.comboStep * 20);
+            });
+        }
 
-        this.scene.time.delayedCall(config.isHeavy ? 300 : 150, () => hitbox.destroy());
+        if (fighters) {
+            this.scene.physics.overlap(hitbox, fighters, (h, target) => {
+                if (target !== source) {
+                    this.scene.collisions.handleBulletFighterCollision(h, target);
+
+                    const isLauncher = h.isLauncher;
+                    const isDive = h.isDive;
+
+                    let stopTime = 150 + source.comboStep * 30;
+                    if (isLauncher) stopTime += 100;
+                    if (isDive) stopTime += 50;
+
+                    this.applyHitStop(stopTime);
+                }
+            });
+        }
+
+        this.scene.time.delayedCall(150, () => hitbox.destroy());
     }
 
     applyHitStop(duration) {

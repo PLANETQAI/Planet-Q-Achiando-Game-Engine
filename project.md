@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A Next.js-based game generation platform that creates playable shooter and racing games through a simulated AI coding interface. The platform provides an illusion of real-time game generation while serving pre-built, configurable game variants. Users can create new games or edit existing ones through a unified interface that showcases a "vibe coding" experience.
+A Next.js-based game generation platform that creates playable shooter, racing, and fighting games through a simulated AI coding interface. The platform serves pre-built, configurable game variants. Users can create new games or edit existing ones through a unified interface that showcases a "vibe coding" experience.
 
 ---
 
@@ -11,7 +11,7 @@ A Next.js-based game generation platform that creates playable shooter and racin
 ### What This Platform Does
 - Allows users to describe a game idea in natural language
 - Simulates an AI "coding" the game in real-time with visual feedback
-- Generates playable games by selecting and configuring pre-built variants
+- Generates playable games by selecting and configuring pre-built variants from a central registry
 - Provides both creation and editing capabilities in a single unified interface
 - Displays live game previews during the creation/editing process
 
@@ -20,10 +20,10 @@ A Next.js-based game generation platform that creates playable shooter and racin
 - **Vibe Coding UX**: Creates the illusion of watching an AI code in real-time
 - **Unified Create/Edit Flow**: Single interface handles both new games and modifications
 - **Live Preview**: See your game come to life as it's being "generated"
-- **Config-Driven**: All game logic lives in configuration files, making future AI integration seamless
+- **Config-Driven**: All game logic lives in a central registry, making future AI integration seamless
 
-### Phase 1 Scope
-This documentation covers Phase 1: building 10 deterministic game variants (5 shooters, 5 racing games) with a polished creation experience. Phase 2 (actual AI generation) will build on this foundation.
+### Phase 1 Scope (Current State)
+This documentation covers the expanded Phase 1: building 24+ deterministic game variants (Shooters, Racing, Fighting) with a polished creation experience and advanced environment/juice managers.
 
 ---
 
@@ -64,164 +64,67 @@ game-generator/
 │           ├── GameEditor.jsx              # Main editor container (client)
 │           ├── GamePreview.jsx             # Live game preview (client)
 │           ├── PhaserGame.jsx              # Phaser wrapper (client)
-│           ├── ControlPanel.jsx            # Edit controls sidebar (client)
 │           │
 │           ├── vibe-coder/                 # Vibe coding simulation
 │           │   ├── VibeCoderOverlay.jsx    # Full-screen coding UI (client)
 │           │   ├── ChatInterface.jsx       # AI chat messages (client)
-│           │   ├── ApproachExplainer.jsx   # Shows game architecture (client)
-│           │   ├── AssetGenerator.jsx      # Asset generation animation (client)
-│           │   ├── CodeSimulator.jsx       # Terminal-style code display (client)
-│           │   ├── ProgressSteps.jsx       # Stage indicator (client)
-│           │   └── index.js                # Exports all vibe coder components
+│           │   ├── AssetInitializationGrid.jsx # Grid of assets during prep
+│           │   ├── LogicProcessingSession.jsx # Informative session during logic prep
+│           │   └── index.js                # Exports
 │           │
 │           ├── game-ui/                    # In-game UI components
-│           │   ├── GameHUD.jsx             # Health, score, timer (client)
-│           │   ├── PauseMenu.jsx           # Pause overlay (client)
-│           │   ├── GameOver.jsx            # End game screen (client)
-│           │   └── Controls.jsx            # Control instructions (client)
+│           │   └── ...
 │           │
 │           └── shared/
-│               ├── LoadingSpinner.jsx      # Reusable loader (client)
-│               └── Button.jsx              # Styled button (client)
+│               └── ...
 │
 ├── components/
 │   ├── home/
-│   │   ├── Hero.jsx                        # Home hero section (client)
 │   │   ├── GameGrid.jsx                    # Grid of game cards (client)
 │   │   ├── GameCard.jsx                    # Individual game card (client)
-│   │   ├── CategoryFilter.jsx              # Filter shooter/racing (client)
-│   │   └── SearchBar.jsx                   # Search games (client)
+│   │   └── ...
 │   │
 │   └── shared/
-│       ├── Header.jsx                      # Site header (client)
-│       ├── Footer.jsx                      # Site footer (client)
-│       └── Navigation.jsx                  # Nav menu (client)
+│       └── Header.jsx                      # Site header (client)
 │
 ├── games/
 │   ├── shooter/
-│   │   ├── core/
-│   │   │   ├── BaseShooter.js              # Shared shooter logic
-│   │   │   ├── WeaponSystem.js             # Weapon handling
-│   │   │   ├── SpawnManager.js             # Enemy spawning
-│   │   │   ├── CollisionHandler.js         # Collision detection
-│   │   │   └── index.js                    # Exports
-│   │   │
-│   │   └── variants/
-│   │       ├── space-invaders/
-│   │       │   ├── config.js               # Game configuration
-│   │       │   ├── scenes/
-│   │       │   │   ├── GameScene.js        # Main game scene
-│   │       │   │   ├── UIScene.js          # UI overlay scene
-│   │       │   │   └── MenuScene.js        # Menu scene
-│   │       │   ├── entities/
-│   │       │   │   ├── Player.js           # Player ship
-│   │       │   │   ├── Enemy.js            # Enemy aliens
-│   │       │   │   ├── Bullet.js           # Projectiles
-│   │       │   │   └── Shield.js           # Protective barriers
-│   │       │   └── index.js                # Variant entry point
-│   │       │
-│   │       ├── top-down-shooter/
-│   │       │   └── [same structure]
-│   │       ├── side-scroller/
-│   │       │   └── [same structure]
-│   │       ├── twin-stick/
-│   │       │   └── [same structure]
-│   │       └── bullet-hell/
-│   │           └── [same structure]
+│   │   └── core/                           # Shared shooter logic
+│   │       ├── BaseShooter.js
+│   │       ├── WeaponSystem.js
+│   │       ├── SpawnManager.js
+│   │       └── CollisionHandler.js
 │   │
-│   └── racing/
-│       ├── core/
-│       │   ├── BaseRacer.js                # Shared racing logic
-│       │   ├── LapSystem.js                # Lap counting
-│       │   ├── TrackManager.js             # Track boundaries
-│       │   ├── AIDriver.js                 # Opponent AI
-│       │   └── index.js                    # Exports
-│       │
-│       └── variants/
-│           ├── arcade-racer/
-│           │   ├── config.js
-│           │   ├── scenes/
-│           │   │   ├── RaceScene.js
-│           │   │   ├── UIScene.js
-│           │   │   └── MenuScene.js
-│           │   ├── entities/
-│           │   │   ├── Car.js
-│           │   │   ├── Track.js
-│           │   │   ├── Opponent.js
-│           │   │   └── BoostPad.js
-│           │   └── index.js
-│           │
-│           ├── drift-racer/
-│           │   └── [same structure]
-│           ├── obstacle-course/
-│           │   └── [same structure]
-│           ├── time-trial/
-│           │   └── [same structure]
-│           └── combat-racing/
-│               └── [same structure]
+│   ├── racing/
+│   │   └── core/                           # Shared racing logic
+│   │       ├── BaseRacer.js
+│   │       └── SkyRacer.js
+│   │
+│   ├── fighter/
+│   │   └── core/                           # Shared fighting logic
+│   │       ├── BaseFighter.js
+│   │       ├── FighterWeaponSystem.js
+│   │       └── FighterCollisionHandler.js
+│   │
+│   └── core/                               # Project-wide core managers
+│       ├── EnvironmentManager.js           # Weather, vibes, shaders
+│       ├── JuiceManager.js                 # Screenshake, particles, feedback
+│       └── MovementManager.js              # Input handling across genres
 │
 ├── lib/
-│   ├── gameRegistry.js                     # Maps IDs to game configs
-│   ├── vibeCoder.js                        # Vibe coding simulation engine
-│   ├── assetLoader.js                      # Asset management
-│   ├── gameSelector.js                     # Variant selection logic
-│   ├── configBuilder.js                    # Builds configs from user input
-│   └── storage.js                          # Local storage for saved games
+│   ├── gameRegistry.js                     # The Single Source of Truth for all games
+│   ├── vibeCoder.js                        # Simulation steps & messages
+│   ├── gameSelector.js                     # Keyword matching logic
+│   ├── configBuilder.js                    # Dynamic config construction
+│   └── storage.js                          # LocalStorage management
 │
-├── public/
-│   └── assets/
-│       ├── shooter/
-│       │   ├── space-invaders/
-│       │   │   ├── sprites/
-│       │   │   │   ├── player.png
-│       │   │   │   ├── enemy-1.png
-│       │   │   │   ├── bullet.png
-│       │   │   │   └── explosion.png
-│       │   │   ├── sounds/
-│       │   │   │   ├── shoot.mp3
-│       │   │   │   ├── explosion.mp3
-│       │   │   │   └── hit.mp3
-│       │   │   └── music/
-│       │   │       └── theme.mp3
-│       │   │
-│       │   ├── top-down-shooter/
-│       │   │   └── [same structure]
-│       │   ├── side-scroller/
-│       │   │   └── [same structure]
-│       │   ├── twin-stick/
-│       │   │   └── [same structure]
-│       │   └── bullet-hell/
-│       │       └── [same structure]
-│       │
-│       ├── racing/
-│       │   ├── arcade-racer/
-│       │   │   ├── sprites/
-│       │   │   │   ├── car-red.png
-│       │   │   │   ├── car-blue.png
-│       │   │   │   ├── track.png
-│       │   │   │   └── boost-pad.png
-│       │   │   ├── sounds/
-│       │   │   │   ├── engine.mp3
-│       │   │   │   ├── drift.mp3
-│       │   │   │   └── boost.mp3
-│       │   │   └── music/
-│       │   │       └── race-theme.mp3
-│       │   │
-│       │   └── [other racing variants...]
-│       │
-│       └── shared/
-│           ├── ui/
-│           │   ├── button.png
-│           │   ├── panel.png
-│           │   └── icons/
-│           ├── effects/
-│           │   ├── particles.png
-│           │   └── sparks.png
-│           └── fonts/
-│               └── game-font.ttf
-│
-└── design/
+└── public/                                 # Static assets (sprites, audio)
+    └── assets/
+        ├── shooter/
+        ├── racing/
+        ├── fighter/
+        └── ...
+```
     ├── home.png                            # Home page design reference
     ├── create.png                          # Create/Edit page design reference
     ├── guidelines.md                       # Design system documentation
@@ -319,15 +222,8 @@ app/play/[id]/page.js (Server)
   └── GameEditor.jsx (Client)
       ├── VibeCoderOverlay.jsx (Client) [shown during creation]
       │   ├── ChatInterface.jsx
-      │   ├── ApproachExplainer.jsx
-      │   ├── AssetGenerator.jsx
-      │   ├── CodeSimulator.jsx
-      │   └── ProgressSteps.jsx
-      │
-      ├── ControlPanel.jsx (Client) [shown in edit mode]
-      │   ├── ConfigEditor
-      │   ├── VariantSelector
-      │   └── SaveButton
+      │   ├── AssetInitializationGrid.jsx
+      │   └── LogicProcessingSession.jsx
       │
       └── GamePreview.jsx (Client) [shown after generation]
           └── PhaserGame.jsx
@@ -646,365 +542,37 @@ app/play/[id]/page.js (Server)
 ## Configuration System
 
 ### Purpose of Configs
-Configs are the **single source of truth** for each game. They define:
+Configs are the **single source of truth** for each game, now centralized in `lib/gameRegistry.js`. They define:
 - How the game looks (sprites, colors, layout)
 - How the game plays (mechanics, difficulty, controls)
 - What assets to load (sprites, sounds, music)
 - How the game ends (win/loss conditions)
 
-By keeping all this in a config file, we can:
-- Swap configs to change games entirely
-- Modify configs to "edit" games
-- Pass configs to AI in Phase 2 for real generation
+By keeping all this in a central registry, we:
+- Centralize management of dozens of variants
+- Enable easy selection based on user input
+- Can "deep clone" and modify configs for custom vibes
 
-### Config Structure (Detailed Example)
+### Central Registry Structure
 
-```javascript
-// games/shooter/variants/space-invaders/config.js
-
-export const SpaceInvadersConfig = {
-  // ===== META INFORMATION =====
-  id: 'space-invaders-01',
-  name: 'Galactic Defenders',
-  description: 'Classic arcade shooter with alien invaders',
-  category: 'shooter',
-  variant: 'space-invaders',
-  thumbnail: '/assets/shooter/space-invaders/thumbnail.png',
-  
-  // ===== DISPLAY SETTINGS =====
-  layout: {
-    type: 'fixed-bottom-player',      // Determines camera and player constraints
-    canvasWidth: 800,
-    canvasHeight: 600,
-    backgroundColor: '#0a0a1a',
-    pixelArt: true                    // Phaser rendering mode
-  },
-  
-  // ===== PLAYER CONFIGURATION =====
-  player: {
-    startX: 400,
-    startY: 550,
-    speed: 250,                       // Pixels per second
-    health: 3,                        // Number of lives
-    sprite: 'player-ship-01',
-    spriteWidth: 32,
-    spriteHeight: 32,
-    boundaryPadding: 20,              // Distance from screen edge
-    invincibilityTime: 2000,          // Milliseconds after hit
-    animations: {
-      idle: { frames: [0], frameRate: 1 },
-      hit: { frames: [1, 2, 1, 0], frameRate: 10 }
-    }
-  },
-  
-  // ===== WEAPON SYSTEM =====
-  weapons: {
-    primary: {
-      type: 'laser',
-      damage: 1,
-      fireRate: 300,                  // Milliseconds between shots
-      bulletSpeed: 400,
-      sprite: 'laser-blue',
-      sound: 'shoot-01',
-      maxBullets: 3                   // Limit simultaneous bullets
-    }
-  },
-  
-  // ===== ENEMY CONFIGURATION =====
-  enemies: {
-    formations: [
-      {
-        name: 'wave-1',
-        type: 'grid',
-        rows: 5,
-        cols: 11,
-        spacing: 60,
-        startY: 50,
-        enemyType: 'alien-basic',
-        health: 1,
-        points: 10,
-        moveSpeed: 30,
-        movePattern: 'horizontal-descend',  // Move right, then left, then down
-        shootChance: 0.01,                   // 1% chance per frame to shoot
-        sprite: 'alien-01',
-        bulletSprite: 'enemy-bullet-01',
-        bulletSpeed: 200
-      }
-    ],
-    spawnRules: {
-      waveDelay: 3000,                // Time between waves
-      speedIncrease: 1.1,             // Speed multiplier per wave
-      maxWaves: 10
-    }
-  },
-  
-  // ===== OBSTACLES/SHIELDS =====
-  obstacles: {
-    shields: [
-      {
-        x: 150,
-        y: 450,
-        health: 10,
-        sprite: 'shield-01',
-        destructible: true
-      },
-      { x: 350, y: 450, health: 10, sprite: 'shield-01', destructible: true },
-      { x: 550, y: 450, health: 10, sprite: 'shield-01', destructible: true },
-      { x: 750, y: 450, health: 10, sprite: 'shield-01', destructible: true }
-    ]
-  },
-  
-  // ===== SCORING SYSTEM =====
-  scoring: {
-    enemyKill: 10,
-    waveComplete: 100,
-    livesBonus: 1000,
-    accuracyBonus: true               // Bonus for high accuracy
-  },
-  
-  // ===== DIFFICULTY SETTINGS =====
-  difficulty: {
-    startingWave: 1,
-    maxWaves: 10,
-    progressionCurve: 'linear',       // linear, exponential, custom
-    enemyHealthIncrease: 0,           // Per wave
-    enemySpeedIncrease: 0.1           // Multiplier per wave
-  },
-  
-  // ===== CONTROLS =====
-  controls: {
-    moveLeft: 'LEFT',
-    moveRight: 'RIGHT',
-    shoot: 'SPACE',
-    pause: 'P'
-  },
-  
-  // ===== ASSETS TO LOAD =====
-  assets: {
-    sprites: [
-      { key: 'player-ship-01', path: '/assets/shooter/space-invaders/sprites/player.png' },
-      { key: 'alien-01', path: '/assets/shooter/space-invaders/sprites/enemy-1.png' },
-      { key: 'laser-blue', path: '/assets/shooter/space-invaders/sprites/bullet.png' },
-      { key: 'shield-01', path: '/assets/shooter/space-invaders/sprites/shield.png' },
-      { key: 'explosion-01', path: '/assets/shooter/space-invaders/sprites/explosion.png' }
-    ],
-    spritesheets: [
-      {
-        key: 'player-ship-01',
-        path: '/assets/shooter/space-invaders/sprites/player-sheet.png',
-        frameWidth: 32,
-        frameHeight: 32
-      }
-    ],
-    sounds: [
-      { key: 'shoot-01', path: '/assets/shooter/space-invaders/sounds/shoot.mp3' },
-      { key: 'explosion', path: '/assets/shooter/space-invaders/sounds/explosion.mp3' },
-      { key: 'hit', path: '/assets/shooter/space-invaders/sounds/hit.mp3' },
-      { key: 'game-over', path: '/assets/shooter/space-invaders/sounds/game-over.mp3' }
-    ],
-    music: [
-      { key: 'theme', path: '/assets/shooter/space-invaders/music/theme.mp3', volume: 0.5 }
-    ]
-  },
-  
-  // ===== UI CONFIGURATION =====
-  ui: {
-    showScore: true,
-    showLives: true,
-    showWave: true,
-    hudPosition: 'top',
-    font: 'PressStart2P',
-    fontSize: 16,
-    fontColor: '#ffffff'
-  },
-  
-  // ===== GAME FLOW =====
-  gameFlow: {
-    showIntro: true,
-    introText: 'Defend Earth from alien invaders!',
-    introDuration: 3000,
-    winCondition: 'clear-all-waves',
-    loseCondition: 'player-death-or-invasion',
-    onWin: {
-      showVictoryScreen: true,
-      message: 'Earth is saved!',
-      nextLevel: null
-    },
-    onLose: {
-      showGameOverScreen: true,
-      message: 'The invasion succeeded...',
-      allowRetry: true
-    }
-  }
-}
-```
-
-### Config for Racing Example
+The `lib/gameRegistry.js` file contains a mapping of game IDs to their full configurations. For example:
 
 ```javascript
-// games/racing/variants/arcade-racer/config.js
+// lib/gameRegistry.js
 
-export const ArcadeRacerConfig = {
-  // ===== META =====
-  id: 'arcade-racer-01',
-  name: 'Speed Circuit',
-  description: 'Classic top-down racing action',
-  category: 'racing',
-  variant: 'arcade-racer',
-  thumbnail: '/assets/racing/arcade-racer/thumbnail.png',
-  
-  // ===== DISPLAY =====
-  layout: {
-    type: 'top-down-circuit',
-    canvasWidth: 1024,
-    canvasHeight: 768,
-    backgroundColor: '#1a1a1a',
-    cameraFollow: true,
-    cameraDeadzone: { x: 0.2, y: 0.2 }
-  },
-  
-  // ===== TRACK =====
-  track: {
-    type: 'oval',
-    totalLaps: 3,
-    checkpoints: [
-      { x: 200, y: 400, order: 1 },
-      { x: 800, y: 200, order: 2 },
-      { x: 800, y: 600, order: 3 },
-      { x: 200, y: 400, order: 4 }  // Start/finish
-    ],
-    width: 120,
-    surface: 'asphalt',
-    friction: 0.95,
-    bounds: 'wall',
-    trackImage: '/assets/racing/arcade-racer/track-oval.png'
-  },
-  
-  // ===== PLAYER CAR =====
-  car: {
-    startX: 100,
-    startY: 400,
-    startAngle: 0,
-    maxSpeed: 400,
-    acceleration: 200,
-    handling: 300,
-    brakePower: 300,
-    friction: 0.95,
-    sprite: 'car-red-01',
-    width: 32,
-    height: 48
-  },
-  
-  // ===== OPPONENTS =====
-  opponents: {
-    count: 3,
-    startPositions: [
-      { x: 80, y: 380, angle: 0 },
-      { x: 60, y: 400, angle: 0 },
-      { x: 40, y: 420, angle: 0 }
-    ],
-    aiTypes: ['aggressive', 'balanced', 'defensive'],
-    sprites: ['car-blue-01', 'car-green-01', 'car-yellow-01'],
-    rubberBanding: {
-      enabled: true,
-      leadSpeedReduction: 0.9,
-      trailSpeedBoost: 1.1
-    },
-    difficulty: 0.7  // 0-1 scale
-  },
-  
-  // ===== MECHANICS =====
-  mechanics: {
-    drift: {
-      enabled: true,
-      triggerAngle: 25,
-      boostMultiplier: 1.3,
-      minSpeed: 200,
-      particleEffect: 'drift-smoke'
-    },
-    boostPads: {
-      enabled: true,
-      positions: [
-        { x: 300, y: 200 },
-        { x: 700, y: 400 },
-        { x: 500, y: 600 },
-        { x: 100, y: 300 }
-      ],
-      speedIncrease: 1.5,
-      duration: 1000,
-      sprite: 'boost-pad'
-    },
-    collisions: {
-      carToCarBounce: true,
-      wallBounce: true,
-      speedReduction: 0.5
+export const GAME_REGISTRY = {
+  'space-invaders-01': {
+    id: 'space-invaders-01',
+    name: 'Galactic Defenders',
+    category: 'shooter',
+    config: {
+      player: { speed: 400, asset: '...', hp: 3 },
+      weapon: { fireRate: 200, bulletSpeed: 800, type: 'bullet' },
+      spawn: { type: 'grid', count: 12, asset: '...' },
+      background: '...'
     }
   },
-  
-  // ===== CONTROLS =====
-  controls: {
-    accelerate: 'UP',
-    brake: 'DOWN',
-    steerLeft: 'LEFT',
-    steerRight: 'RIGHT',
-    drift: 'SPACE'
-  },
-  
-  // ===== SCORING =====
-  scoring: {
-    positionPoints: [100, 75, 50, 25],  // Points for 1st, 2nd, 3rd, 4th
-    lapTimeBonus: true,
-    perfectLapBonus: 500,
-    driftBonus: 10  // Per second of drifting
-  },
-  
-  // ===== UI =====
-  ui: {
-    showPosition: true,
-    showLapCount: true,
-    showSpeed: true,
-    showTimer: true,
-    minimap: true,
-    minimapPosition: 'top-right'
-  },
-  
-  // ===== ASSETS =====
-  assets: {
-    sprites: [
-      { key: 'car-red-01', path: '/assets/racing/arcade-racer/sprites/car-red.png' },
-      { key: 'car-blue-01', path: '/assets/racing/arcade-racer/sprites/car-blue.png' },
-      { key: 'track-oval', path: '/assets/racing/arcade-racer/sprites/track.png' },
-      { key: 'boost-pad', path: '/assets/racing/arcade-racer/sprites/boost.png' }
-    ],
-    sounds: [
-      { key: 'engine', path: '/assets/racing/arcade-racer/sounds/engine.mp3', loop: true },
-      { key: 'drift', path: '/assets/racing/arcade-racer/sounds/drift.mp3' },
-      { key: 'boost', path: '/assets/racing/arcade-racer/sounds/boost.mp3' }
-    ],
-    music: [
-      { key: 'race-theme', path: '/assets/racing/arcade-racer/music/theme.mp3' }
-    ]
-  },
-  
-  // ===== GAME FLOW =====
-  gameFlow: {
-    countdown: {
-      enabled: true,
-      duration: 3,  // 3, 2, 1, GO!
-      freezeCars: true
-    },
-    winCondition: 'finish-first',
-    loseCondition: 'finish-fourth',
-    onWin: {
-      showVictoryScreen: true,
-      message: 'You win!',
-      unlockNext: 'arcade-racer-02'
-    },
-    onLose: {
-      showResultsScreen: true,
-      allowRetry: true
-    }
-  }
+  // ... 20+ other variants
 }
 ```
 
@@ -1016,263 +584,55 @@ export const ArcadeRacerConfig = {
 The vibe coder is a **simulated AI coding experience** that creates the illusion of watching an AI build a game in real-time. It's entirely deterministic—no actual code generation happens. Instead, it's a carefully choreographed sequence of UI animations and messages that:
 
 1. Makes the user feel like an AI is understanding their request
-2. Shows the "AI" making architectural decisions
-3. Displays asset generation progress
-4. Simulates code files being written
-5. Concludes with a playable game
+2. Displays asset preparation and logic handling progress
+3. Concludes with a playable game
 
-### Vibe Coder Stages
+### Vibe Coder Stages (Implemented)
 
-#### Stage 1: THINKING (2-3 seconds)
-**Visual**: Pulsing dots, "thinking" animation
+#### Stage 1: ASSETS (4 seconds)
+**Visual**: `AssetInitializationGrid` showing progress bars for Hero Sprite, Enemy Sheet, World Texture, etc.
 
 **What Happens**:
-- Parse user input (e.g., "I want a space shooter")
-- Match keywords to variant ("space" → space-invaders variant)
-- Prepare variant config
+- Parse user input to select a template ID using `lib/gameSelector.js`
+- Match keywords (e.g., "space" → `space-invaders-01`)
+- Prepare assets for the selected variant
 
-**UI Shows**:
-```
-● ● ● Analyzing your game concept...
-```
-
-**Behind the Scenes**:
-```javascript
-// lib/gameSelector.js
-function selectVariant(userInput) {
-  const keywords = extractKeywords(userInput)
-  
-  if (keywords.includes('space') && keywords.includes('shooter')) {
-    return 'space-invaders'
-  }
-  // ... more matching logic
-}
-```
-
----
-
-#### Stage 2: APPROACH (3-4 seconds)
-**Visual**: Chat-style message explaining the approach
+#### Stage 2: LOGIC (6 seconds)
+**Visual**: `LogicProcessingSession` showing an "Informative Session" with gameplay tips and a rotating engine core icon.
 
 **What Happens**:
-- Display architectural decisions based on selected variant
-- Explain core mechanics
-- Set user expectations
+- `lib/configBuilder.js` creates a deep clone of the registry config
+- Applies "Vibe" overrides (e.g., increasing speed if prompt says "fast")
+- Initializes physics and collision layers in simulation
 
-**UI Shows** (example messages):
-```
-🤖 I'll build a classic space shooter with the following approach:
-
-✓ Layout: Fixed player at bottom, enemies in grid formation
-✓ Mechanics: Left-right movement, vertical shooting, wave progression
-✓ Difficulty: Speed increases each wave, enemies shoot back
-✓ Core loop: Dodge → Shoot → Clear waves → Win
-
-This will create a nostalgic arcade experience!
-```
-
-**Behind the Scenes**:
-```javascript
-// lib/vibeCoder.js
-function generateApproachMessage(variantConfig) {
-  return {
-    layout: variantConfig.layout.type,
-    mechanics: variantConfig.description,
-    difficulty: variantConfig.difficulty.progressionCurve,
-    coreLoop: variantConfig.gameFlow.winCondition
-  }
-}
-```
-
----
-
-#### Stage 3: ASSETS (4-5 seconds)
-**Visual**: Progress bars for each asset type
+#### Stage 3: READY (1 second)
+**Visual**: Scale-up animation of a bolt icon with "ENGINE READY" status.
 
 **What Happens**:
-- Simulate asset generation (sprites, sounds, music)
-- Each asset type has a progress bar that fills
-- Assets "complete" one by one
-
-**UI Shows**:
-```
-🎨 Generating Assets...
-
-[████████░░] Player Sprite    80%
-[██████████] Enemy Sprites    100% ✓
-[████░░░░░░] Bullets          40%
-[░░░░░░░░░░] Sound Effects    0%
-```
-
-**Behind the Scenes**:
-- Loop through `variantConfig.assets`
-- Increment progress for each asset
-- Actual assets already exist in `/public/assets/`
-
-```javascript
-function simulateAssetGeneration(assets, onProgress) {
-  assets.forEach((asset, index) => {
-    setTimeout(() => {
-      onProgress({ asset, progress: 100 })
-    }, index * 800)  // Stagger completion
-  })
-}
-```
-
----
-
-#### Stage 4: CODING (6-8 seconds)
-**Visual**: Terminal-style display showing files being created
-
-**What Happens**:
-- Display file names from variant structure
-- Show action verbs (Creating, Implementing, Configuring)
-- Simulate compilation/testing
-
-**UI Shows** (scrolling terminal):
-```
-$ Creating GameScene.js...                     ✓
-$ Implementing Player.js...                    ✓
-$ Implementing Enemy.js...                     ✓
-$ Configuring WeaponSystem.js...              ✓
-$ Creating SpawnManager.js...                  ✓
-$ Implementing CollisionHandler.js...          ✓
-$ Configuring ScoreManager.js...              ✓
-$ Testing build...                             ✓
-$ Optimizing performance...                    ✓
-```
-
-**Behind the Scenes**:
-```javascript
-const fileList = [
-  'GameScene.js',
-  'Player.js',
-  'Enemy.js',
-  'WeaponSystem.js',
-  'SpawnManager.js',
-  'CollisionHandler.js',
-  'ScoreManager.js'
-]
-
-const actions = ['Creating', 'Implementing', 'Configuring', 'Optimizing']
-
-fileList.forEach((file, index) => {
-  setTimeout(() => {
-    const action = actions[Math.floor(Math.random() * actions.length)]
-    displayTerminalLine(`${action} ${file}...`, 'success')
-  }, index * 600)
-})
-```
-
----
-
-#### Stage 5: FINALIZING (2 seconds)
-**Visual**: Final checks animation
-
-**What Happens**:
-- Show completion messages
-- Prepare to reveal game
-
-**UI Shows**:
-```
-✓ Running final tests...
-✓ Optimizing performance...
-✓ Your game is ready!
-```
-
----
-
-#### Stage 6: REVEAL (instant)
-**What Happens**:
-- Vibe coder overlay fades out
-- Game preview fades in
-- Control panel appears (if in edit mode)
-- URL updates to `/play/[new-id]`
-
----
+- Final config is saved to `lib/storage.js`
+- Transitions from `generating` status to `ready`
 
 ### Vibe Coder Implementation Structure
 
+The simulation is controlled by `lib/vibeCoder.js`, which defines step durations and identifiers:
+
 ```javascript
 // lib/vibeCoder.js
+export const VIBE_STEPS = {
+    ASSETS: 'assets',
+    LOGIC: 'logic',
+    READY: 'ready'
+};
 
-export const VibeCoderStages = {
-  THINKING: {
-    duration: 2000,
-    component: 'ChatInterface',
-    messages: ['Analyzing your game concept...']
-  },
-  APPROACH: {
-    duration: 3000,
-    component: 'ApproachExplainer',
-    generateMessage: (config) => ({
-      layout: config.layout.type,
-      mechanics: config.description,
-      // ... more
-    })
-  },
-  ASSETS: {
-    duration: 4000,
-    component: 'AssetGenerator',
-    steps: (config) => config.assets.sprites.map(s => ({
-      type: 'sprite',
-      name: s.key,
-      status: 'pending'
-    }))
-  },
-  CODING: {
-    duration: 6000,
-    component: 'CodeSimulator',
-    files: [
-      'GameScene.js',
-      'Player.js',
-      // ... more
-    ]
-  },
-  FINALIZING: {
-    duration: 2000,
-    component: 'ChatInterface',
-    messages: [
-      'Running final tests...',
-      'Your game is ready!'
-    ]
-  }
-}
-
-export function runVibeCode(userInput, category, onStageChange, onComplete) {
-  // 1. Select variant based on user input
-  const variant = selectVariant(userInput, category)
-  const config = getVariantConfig(category, variant)
-  
-  // 2. Run through stages
-  const stages = Object.keys(VibeCoderStages)
-  let currentStage = 0
-  
-  function nextStage() {
-    if (currentStage >= stages.length) {
-      onComplete(config)
-      return
-    }
-    
-    const stageName = stages[currentStage]
-    const stageConfig = VibeCoderStages[stageName]
-    
-    onStageChange({
-      stage: stageName,
-      component: stageConfig.component,
-      data: typeof stageConfig.generateMessage === 'function'
-        ? stageConfig.generateMessage(config)
-        : stageConfig
-    })
-    
-    setTimeout(() => {
-      currentStage++
-      nextStage()
-    }, stageConfig.duration)
-  }
-  
-  nextStage()
-}
+export const getSimulationConfig = (prompt) => {
+    return {
+        steps: [
+            { id: VIBE_STEPS.ASSETS, duration: 4000 },
+            { id: VIBE_STEPS.LOGIC, duration: 6000 },
+            { id: VIBE_STEPS.READY, duration: 1000 }
+        ]
+    };
+};
 ```
 
 ---

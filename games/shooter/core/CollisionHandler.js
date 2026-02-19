@@ -4,33 +4,42 @@ export default class CollisionHandler {
         this.scene = scene;
     }
 
-    setup(player, enemies, projectiles) {
-        this.scene.physics.add.collider(projectiles, enemies, this.handleBulletEnemyCollision, null, this);
-        this.scene.physics.add.collider(player, enemies, this.handlePlayerEnemyCollision, null, this);
+    setup(playerOrGroup, enemies, projectiles) {
+        // Player/Fighters vs Enemies
+        this.scene.physics.add.overlap(projectiles, enemies, this.handleBulletEnemyCollision, null, this);
+        this.scene.physics.add.overlap(playerOrGroup, enemies, this.handlePlayerEnemyCollision, null, this);
+
+        // Fighters vs Fighters (1v1 support)
+        if (playerOrGroup.getChildren) {
+            this.scene.physics.add.overlap(projectiles, playerOrGroup, this.handleBulletFighterCollision, null, this);
+        }
     }
 
     handleBulletEnemyCollision(projectile, enemy) {
-        // Create a visual "hit" effect
+        if (!enemy.active) return;
+
+        // Don't hit self with projectiles
+        if (projectile.source === enemy) return;
+
         const x = enemy.x;
         const y = enemy.y;
 
-        projectile.setActive(false);
-        projectile.setVisible(false);
-        projectile.destroy();
+        // Melee hitboxes shouldn't be destroyed
+        if (!projectile.isMelee) {
+            projectile.setActive(false);
+            projectile.setVisible(false);
+            projectile.destroy();
+        }
 
-        // Burning Emoji Effect
-        const fire = this.scene.add.text(x, y, '🔥', { fontSize: '32px' }).setOrigin(0.5);
-        this.scene.tweens.add({
-            targets: fire,
-            scale: 2,
-            alpha: 0,
-            duration: 400,
-            onComplete: () => fire.destroy()
-        });
+        // Visual "Pop" - Replace Emoji with Particles
+        if (this.scene.juice) {
+            this.scene.juice.explode(x, y, 'fire');
+            this.scene.juice.hitStop(20);
+        }
 
-        // Check for special "pop" effects (shrapnel/explosions)
+        // Spawn effects
         const explodeConfig = this.scene.gameConfig.spawn?.explosion;
-        if (explodeConfig && !projectile.isShrapnel) {
+        if (explodeConfig && !projectile.isShrapnel && !projectile.isMelee) {
             this.scene.weapons.burst(x, y, explodeConfig.count || 8, {
                 asset: explodeConfig.asset || 'bullet_light',
                 bulletSpeed: explodeConfig.speed || 300,
@@ -38,24 +47,64 @@ export default class CollisionHandler {
             });
         }
 
+        // Multi-hit logic for bosses
+        if (enemy.isBoss) {
+            enemy.hp -= (projectile.damage || 1);
+            if (this.scene.juice) {
+                this.scene.juice.flash(enemy, 50);
+                this.scene.juice.explode(x, y, 'sparks');
+            }
+            if (enemy.hp > 0) return; // Don't destroy yet
+
+            // Boss Death: Massive explosion
+            if (this.scene.juice) {
+                this.scene.juice.explode(x, y, 'fire');
+                this.scene.juice.explode(x, y, 'shrapnel');
+                this.scene.juice.shake(500, 0.04);
+                this.scene.juice.hitStop(200);
+            }
+        }
+
         enemy.destroy();
 
-        // Screen shake
-        this.scene.cameras.main.shake(150, 0.008);
+        // Feedback
+        if (this.scene.juice) {
+            this.scene.juice.shake(100, 0.01);
+        }
 
         if (this.scene.addScore) {
             this.scene.addScore(100);
         }
     }
 
+    handleBulletFighterCollision(projectile, fighter) {
+        if (!fighter.active) return;
+
+        // Don't hit self or teammates
+        if (projectile.source === fighter) return;
+        if (projectile.source?.team && fighter.team && projectile.source.team === fighter.team) return;
+
+        // Melee hitboxes shouldn't be destroyed
+        if (!projectile.isMelee) {
+            projectile.setActive(false);
+            projectile.setVisible(false);
+            projectile.destroy();
+        }
+
+        if (this.scene.handlePlayerHit) {
+            this.scene.handlePlayerHit(fighter);
+        }
+    }
+
     handlePlayerEnemyCollision(player, enemy) {
+        if (!enemy.active || !player.active) return;
         enemy.destroy();
 
-        // Damage feedback
-        this.scene.cameras.main.flash(200, 255, 0, 0);
         this.scene.cameras.main.shake(300, 0.01);
-
-        // Trigger player damage
-        this.scene.events.emit('playerHit');
+        if (this.scene.handlePlayerHit) {
+            this.scene.handlePlayerHit(player);
+        } else {
+            this.scene.events.emit('playerHit');
+        }
     }
 }

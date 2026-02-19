@@ -65,8 +65,10 @@ export default class SpawnManager {
                 enemy.setVelocityX(-Phaser.Math.Between(configSpeed * 0.8, configSpeed * 1.2));
                 enemy.setVelocityY(Phaser.Math.Between(-50, 50) * multiplier);
             } else {
-                enemy.setVelocityY(Phaser.Math.Between(configSpeed * 0.8, configSpeed * 1.2));
-                enemy.setVelocityX(Phaser.Math.Between(-50, 50) * multiplier);
+                // Swarm Physics: Descend with jitter
+                enemy.setVelocityY(Phaser.Math.Between(configSpeed * 0.5, configSpeed));
+                enemy.setVelocityX(Phaser.Math.Between(-100, 100) * multiplier);
+                enemy.body.setDrag(50); // Air resistance
             }
         } else {
             enemy.setVelocityX(currentMoveSpeed * this.moveDirection);
@@ -89,6 +91,37 @@ export default class SpawnManager {
         }
 
         enemy.setCollideWorldBounds(false);
+    }
+
+    spawnBoss(config) {
+        const x = this.scene.gameConfig.orientation === 'horizontal' ? 900 : 400;
+        const y = this.scene.gameConfig.orientation === 'horizontal' ? 300 : -100;
+
+        const boss = this.enemies.create(x, y, config.asset || 'player');
+        boss.hp = config.hp || 50;
+        boss.maxHp = boss.hp;
+        boss.isBoss = true;
+        boss.setScale(config.scale || 1.5);
+        boss.setTint(0xff8888);
+
+        // Complex movement pattern
+        this.scene.tweens.add({
+            targets: boss,
+            x: this.scene.gameConfig.orientation === 'horizontal' ? 600 : 400,
+            y: this.scene.gameConfig.orientation === 'horizontal' ? 300 : 150,
+            duration: 2000,
+            onComplete: () => {
+                this.scene.tweens.add({
+                    targets: boss,
+                    x: { from: 100, to: 700 },
+                    duration: 3000,
+                    yoyo: true,
+                    loop: -1
+                });
+            }
+        });
+
+        return boss;
     }
 
     update() {

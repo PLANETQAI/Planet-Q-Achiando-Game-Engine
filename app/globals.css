@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0b1e;
+  --foreground: #ffffff;
+  --color-primary: #00f2ff;
+  --color-secondary: #b026ff;
 }
 
 @theme inline {
@@ -10,28 +12,50 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-primary: #6668f0;
+  --color-primary: #00f2ff;
+  --color-secondary: #b026ff;
   --color-terminal-green: #4af626;
   --color-terminal-bg: #0d1117;
-  --color-background-dark: #0a0a0f;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background-dark: #0a0b1e;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
 @layer utilities {
+  .planetq-grid {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    perspective: 1000px;
+    transform-style: preserve-3d;
+  }
+
+  .perspective-grid {
+    background-image: 
+      linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+    background-size: 100px 100px;
+    background-position: center bottom;
+    mask-image: linear-gradient(to bottom, transparent, black);
+    transform: rotateX(60deg) scale(2);
+    transform-origin: center top;
+  }
+
   .glassmorphism {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/10;
+  }
+
+  .glass-card {
+    @apply bg-indigo-950/20 backdrop-blur-xl border border-white/5 shadow-2xl;
+  }
+
+  .neon-text {
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -46,15 +70,12 @@ body {
     @apply bg-white/10 rounded-full;
   }
 
-  .blinking-cursor::after {
-    content: '█';
-    animation: blink 1s step-start infinite;
-    @apply text-terminal-green ml-1;
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 
-  @keyframes blink {
-    50% {
-      opacity: 0;
-    }
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
   }
 }

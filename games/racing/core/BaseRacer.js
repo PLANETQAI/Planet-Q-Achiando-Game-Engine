@@ -1,5 +1,5 @@
-
 import * as Phaser from 'phaser';
+import JuiceManager from '../../core/JuiceManager';
 
 export default class BaseRacer extends Phaser.Scene {
     constructor() {
@@ -34,6 +34,7 @@ export default class BaseRacer extends Phaser.Scene {
         this.hp = this.gameConfig.car.hp || 3;
         this.maxHp = this.hp;
         this.timeRemaining = this.gameConfig.track.timePerLevel;
+        this.isHopping = false;
     }
 
     preload() {
@@ -114,12 +115,18 @@ export default class BaseRacer extends Phaser.Scene {
         // Spawners
         this.time.addEvent({ delay: 1200, callback: this.spawnObstacle, callbackScope: this, loop: true });
         this.time.addEvent({ delay: 2000, callback: this.spawnCollectible, callbackScope: this, loop: true });
+        this.time.addEvent({ delay: 5000, callback: this.spawnSpeedPad, callbackScope: this, loop: true });
+
+        // Groups
+        this.speedPads = this.physics.add.group();
 
         // Collisions
         this.physics.add.overlap(this.car, this.obstacles, this.handleObstacleCollision, null, this);
         this.physics.add.overlap(this.car, this.collectibles, this.handleCollectibleCollision, null, this);
+        this.physics.add.overlap(this.car, this.speedPads, this.handleSpeedPadOverlap, null, this);
 
         this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         // UI
         this.scoreText = this.add.text(10, 10, 'SCORE: 0', { font: 'bold 16px monospace', fill: '#00ffff' });
@@ -142,6 +149,7 @@ export default class BaseRacer extends Phaser.Scene {
             loop: true
         });
 
+        this.juice = new JuiceManager(this);
         // Start Msg
         const readyText = this.add.text(400, 300, 'GEAR UP!', { font: 'bold 40px monospace', fill: '#fff', backgroundColor: '#000', padding: 10 }).setOrigin(0.5);
         this.tweens.add({ targets: readyText, alpha: 0, duration: 800, delay: 1000, onComplete: () => readyText.destroy() });
@@ -163,24 +171,57 @@ export default class BaseRacer extends Phaser.Scene {
         coin.setVelocityY(300);
     }
 
+    spawnSpeedPad() {
+        if (this.isGameOver) return;
+        const x = Phaser.Math.Between(150, 650);
+        const pad = this.add.rectangle(x, -50, 80, 40, 0xffff00, 0.6);
+        this.physics.add.existing(pad);
+        this.speedPads.add(pad);
+        pad.body.setVelocityY(400);
+
+        // Add arrow indicators
+        const arrows = this.add.text(x, -50, '>>>>', { font: 'bold 20px monospace', fill: '#000' }).setOrigin(0.5);
+        this.tweens.add({ targets: arrows, y: 700, duration: 2000, onComplete: () => arrows.destroy() });
+    }
+
     handleObstacleCollision(car, obstacle) {
-        if (obstacle.hit) return;
+        if (obstacle.hit || this.isHopping) return;
         obstacle.hit = true;
         obstacle.setTint(0xff0000);
 
         this.hp -= (this.gameConfig.obstacles.damage || 1);
         this.updateHealthBar();
 
-        this.cameras.main.shake(200, 0.01);
+        if (this.juice) {
+            this.juice.shake(300, 0.02);
+            this.juice.explode(this.car.x, this.car.y, 'fire');
+            this.juice.hitStop(100);
+        }
 
         if (this.hp <= 0) {
             this.gameOver('VEHICLE DESTROYED');
         }
 
-        this.tweens.add({
-            targets: obstacle, alpha: 0, scale: 0, duration: 200,
-            onComplete: () => obstacle.destroy()
+        obstacle.destroy();
+    }
+
+    handleSpeedPadOverlap(car, pad) {
+        if (pad.used) return;
+        pad.used = true;
+
+        this.juice.shake(100, 0.01);
+        this.juice.explode(car.x, car.y, 'sparks');
+
+        // Speed Boost
+        const originalHandling = this.gameConfig.car.handling;
+        this.gameConfig.car.handling *= 2;
+        this.cameras.main.flash(500, 255, 255, 0);
+
+        this.time.delayedCall(2000, () => {
+            this.gameConfig.car.handling = originalHandling;
         });
+
+        pad.destroy();
     }
 
     handleCollectibleCollision(car, coin) {
@@ -236,25 +277,40 @@ export default class BaseRacer extends Phaser.Scene {
         if (this.leftBorder) this.leftBorder.tilePositionY -= scrollSpeed;
         if (this.rightBorder) this.rightBorder.tilePositionY -= scrollSpeed;
 
-        // Steering
+        // Steering & Tilting
         if (this.cursors.left.isDown) {
             this.car.setVelocityX(-handling);
-            this.car.setAngle(-15);
+            this.car.setAngle(Phaser.Math.Interpolation.Linear([this.car.angle, -20], 0.1));
+            this.car.setScale(this.gameConfig.car.scale * 0.9, this.gameConfig.car.scale * 1.1); // Squash
         } else if (this.cursors.right.isDown) {
             this.car.setVelocityX(handling);
-            this.car.setAngle(15);
+            this.car.setAngle(Phaser.Math.Interpolation.Linear([this.car.angle, 20], 0.1));
+            this.car.setScale(this.gameConfig.car.scale * 0.9, this.gameConfig.car.scale * 1.1); // Squash
         } else {
             this.car.setVelocityX(0);
-            this.car.setAngle(0);
+            this.car.setAngle(Phaser.Math.Interpolation.Linear([this.car.angle, 0], 0.2));
+            this.car.setScale(this.gameConfig.car.scale);
         }
 
         // Acceleration/Braking
         if (this.cursors.up.isDown) {
-            this.car.setVelocityY(-handling);
+            this.car.setVelocityY(-handling * 0.5);
+            // Speed Warp Effect
+            if (this.juice) {
+                this.cameras.main.setZoom(Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, 1.05], 0.05));
+                if (Math.random() > 0.8) this.juice.explode(this.car.x, this.car.y + 30, 'sparks');
+            }
         } else if (this.cursors.down.isDown) {
-            this.car.setVelocityY(handling);
+            this.car.setVelocityY(handling * 0.5);
+            this.cameras.main.setZoom(Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, 0.95], 0.05));
         } else {
             this.car.setVelocityY(0);
+            this.cameras.main.setZoom(Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, 1.0], 0.1));
+        }
+
+        // Jump/Hop Logic
+        if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && !this.isHopping) {
+            this.executeHop();
         }
 
         // Cleanup groups
@@ -268,5 +324,27 @@ export default class BaseRacer extends Phaser.Scene {
         this.collectibles.children.each(item => {
             if (item.y > 650) item.destroy();
         });
+    }
+
+    executeHop() {
+        this.isHopping = true;
+
+        // Visual feedback for jump
+        this.tweens.add({
+            targets: this.car,
+            scaleX: this.gameConfig.car.scale * 1.5,
+            scaleY: this.gameConfig.car.scale * 1.5,
+            duration: 250,
+            yoyo: true,
+            ease: 'Custom',
+            onComplete: () => {
+                this.isHopping = false;
+                this.car.setScale(this.gameConfig.car.scale);
+            }
+        });
+
+        if (this.juice) {
+            this.juice.shake(100, 0.005);
+        }
     }
 }

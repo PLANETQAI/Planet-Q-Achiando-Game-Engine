@@ -22,15 +22,17 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
     useEffect(() => {
         const loadScenes = async () => {
             try {
-                const [shooterMod, racingMod, skyRacerMod] = await Promise.all([
+                const [shooterMod, racingMod, skyRacerMod, fighterMod] = await Promise.all([
                     import('@/games/shooter/core/BaseShooter'),
                     import('@/games/racing/core/BaseRacer'),
-                    import('@/games/racing/core/SkyRacer')
+                    import('@/games/racing/core/SkyRacer'),
+                    import('@/games/fighter/core/BaseFighter')
                 ]);
                 setScenes({
                     shooter: shooterMod.default,
                     racing: racingMod.default,
-                    skyRacer: skyRacerMod.default
+                    skyRacer: skyRacerMod.default,
+                    fighter: fighterMod.default
                 });
             } catch (error) {
                 console.error('Failed to load game scenes:', error);
@@ -43,7 +45,9 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
         ? scenes.racing
         : gameConfig?.category === 'platform-racing'
             ? scenes.skyRacer
-            : scenes.shooter;
+            : gameConfig?.category === 'fighting'
+                ? scenes.fighter
+                : scenes.shooter;
 
     const handlePlay = () => {
         if (!activeScene) {
@@ -134,9 +138,9 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
             {isPlaying && (
                 <button
                     onClick={handleStop}
-                    className="absolute bottom-6 left-6 z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/20 text-xs font-bold hover:bg-red-500/30 transition-all text-red-200 border border-red-500/30 backdrop-blur-md"
+                    className="absolute bottom-12 left-12 z-10 flex items-center gap-3 px-6 py-2 rounded-lg bg-red-500/10 text-xs font-black hover:bg-red-500/20 transition-all text-red-400 border border-red-500/20 backdrop-blur-md uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(239,68,68,0.1)]"
                 >
-                    <Square className="w-3 h-3 fill-current" />
+                    <Square className="w-3.5 h-3.5 fill-current" />
                     Terminate Process
                 </button>
             )}

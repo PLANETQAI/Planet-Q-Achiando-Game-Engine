@@ -3,6 +3,9 @@ import * as Phaser from 'phaser';
 import WeaponSystem from './WeaponSystem';
 import SpawnManager from './SpawnManager';
 import CollisionHandler from './CollisionHandler';
+import EnvironmentManager from '../../core/EnvironmentManager';
+import JuiceManager from '../../core/JuiceManager';
+import MovementManager from '../../core/MovementManager';
 
 export default class BaseShooter extends Phaser.Scene {
     constructor() {
@@ -104,6 +107,9 @@ export default class BaseShooter extends Phaser.Scene {
         this.weapons = new WeaponSystem(this);
         this.spawner = new SpawnManager(this);
         this.collisions = new CollisionHandler(this);
+        this.environment = new EnvironmentManager(this);
+        this.juice = new JuiceManager(this);
+        this.environment.applyVibe(this.gameConfig.vibe);
 
         // Create Player
         const pConfig = this.gameConfig.player;
@@ -117,10 +123,12 @@ export default class BaseShooter extends Phaser.Scene {
         this.player.setCollideWorldBounds(true);
 
         if (isHorizontal) {
-            this.player.setRotation(Math.PI / 2); // Rotate to face right
+            this.player.setRotation(Math.PI / 2);
         }
 
-        // Setup Collisions - now using 'projectiles' group
+        this.movement = new MovementManager(this, this.player);
+
+        // Setup Collisions
         this.collisions.setup(this.player, this.spawner.enemies, this.weapons.projectiles);
 
         // Event Listeners
@@ -150,6 +158,7 @@ export default class BaseShooter extends Phaser.Scene {
         });
     }
 
+
     createUI() {
         // Score & Level
         this.scoreText = this.add.text(10, 10, 'SCORE: 0', {
@@ -176,6 +185,13 @@ export default class BaseShooter extends Phaser.Scene {
         this.add.text(620, 10, 'INTEGRITY', { font: 'bold 12px monospace', fill: '#ffffff' });
         this.healthBarBg = this.add.rectangle(725, 17, 100, 10, 0x333333);
         this.healthBar = this.add.rectangle(725, 17, 100, 10, 0x00ff00);
+
+        // Boss Health Bar (hidden by default)
+        this.bossContainer = this.add.container(400, 50).setAlpha(0);
+        this.bossNameText = this.add.text(0, -20, 'TITAN DETECTED', { font: 'bold 16px monospace', fill: '#ff0000' }).setOrigin(0.5);
+        this.bossBarBg = this.add.rectangle(0, 0, 400, 20, 0x333333);
+        this.bossBar = this.add.rectangle(0, 0, 400, 20, 0xff0000);
+        this.bossContainer.add([this.bossNameText, this.bossBarBg, this.bossBar]);
     }
 
     handlePlayerHit() {
@@ -230,6 +246,11 @@ export default class BaseShooter extends Phaser.Scene {
             this.level++;
             this.cameras.main.flash(500, 0, 255, 255);
             // Show level up message handled here if needed
+
+            // Boss Spawn every 5 levels
+            if (this.level % 5 === 0) {
+                this.spawnBoss();
+            }
         }
 
         this.updateHUD();
@@ -240,32 +261,30 @@ export default class BaseShooter extends Phaser.Scene {
         this.levelText.setText('LEVEL: ' + this.level);
     }
 
+    spawnBoss() {
+        const boss = this.spawner.spawnBoss({
+            asset: this.gameConfig.spawn.asset,
+            hp: 50 * this.level,
+            scale: (this.gameConfig.spawn.scale || 0.4) * 3
+        });
+        this.activeBoss = boss;
+        this.tweens.add({ targets: this.bossContainer, alpha: 1, duration: 500 });
+    }
+
     update() {
         if (this.isGameOver || !this.player || !this.player.active) return;
 
-        // Player Movement
-        const speed = this.gameConfig.player.speed * this.getSpeedMultiplier();
-        const isHorizontal = this.gameConfig.orientation === 'horizontal';
-
-        if (isHorizontal) {
-            if (this.cursors.up.isDown) {
-                this.player.setVelocityY(-speed);
-            } else if (this.cursors.down.isDown) {
-                this.player.setVelocityY(speed);
-            } else {
-                this.player.setVelocityY(0);
-            }
-            this.player.setVelocityX(0);
-        } else {
-            if (this.cursors.left.isDown) {
-                this.player.setVelocityX(-speed);
-            } else if (this.cursors.right.isDown) {
-                this.player.setVelocityX(speed);
-            } else {
-                this.player.setVelocityX(0);
-            }
-            this.player.setVelocityY(0);
+        // Update Boss Health Bar
+        if (this.activeBoss && this.activeBoss.active) {
+            const percent = this.activeBoss.hp / this.activeBoss.maxHp;
+            this.bossBar.width = 400 * percent;
+        } else if (this.activeBoss) {
+            this.activeBoss = null;
+            this.tweens.add({ targets: this.bossContainer, alpha: 0, duration: 500 });
         }
+
+        const moveMode = this.gameConfig.orientation === 'horizontal' ? '2way-horizontal' : '4way';
+        this.movement.update(moveMode, this.getSpeedMultiplier());
 
         // Firing
         if (this.cursors.space.isDown) {
@@ -274,6 +293,8 @@ export default class BaseShooter extends Phaser.Scene {
 
         this.weapons.update();
         this.spawner.update();
+        this.environment.update();
+        this.environment.updateByLevel(this.level, this.gameConfig.environmentSequence);
 
         // Scrolling Background
         if (this.gameConfig.orientation === 'horizontal' && this.bg) {
