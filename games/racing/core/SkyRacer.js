@@ -1,5 +1,6 @@
 
 import * as Phaser from 'phaser';
+import { createMobileControls } from '../../core/MovementManager';
 
 export default class SkyRacer extends Phaser.Scene {
     constructor() {
@@ -93,6 +94,7 @@ export default class SkyRacer extends Phaser.Scene {
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceBar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.mobileInput = createMobileControls(this);
 
         // UI
         this.createUI();
@@ -207,14 +209,14 @@ export default class SkyRacer extends Phaser.Scene {
 
         // Input
         const canJump = this.player.body.touching.down;
-        if ((this.cursors.up.isDown || this.spaceBar.isDown) && canJump) {
+        if ((this.cursors.up.isDown || this.spaceBar.isDown || this.mobileInput.justAction) && canJump) {
             this.player.setVelocityY(this.gameConfig.player.jumpForce);
         }
 
         // Horizontal micro-movement
-        if (this.cursors.left.isDown) {
+        if (this.cursors.left.isDown || this.mobileInput.left) {
             this.player.setX(this.player.x - 5);
-        } else if (this.cursors.right.isDown) {
+        } else if (this.cursors.right.isDown || this.mobileInput.right) {
             this.player.setX(this.player.x + 5);
         }
 
@@ -230,5 +232,8 @@ export default class SkyRacer extends Phaser.Scene {
         if (this.player.y > 600) {
             this.gameOver('GRID FALL');
         }
+
+        // Reset just action
+        if (this.mobileInput) this.mobileInput.justAction = false;
     }
 }

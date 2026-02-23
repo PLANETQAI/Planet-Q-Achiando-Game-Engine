@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
     const [currentStep, setCurrentStep] = useState(null);
     const [steps, setSteps] = useState([]);
+    const [activeTab, setActiveTab] = useState('preview'); // 'preview' or 'chat'
 
     useEffect(() => {
         if (status === 'generating') {
@@ -58,7 +59,7 @@ export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
                 )}
             </header>
 
-            <main className="flex-1 relative flex overflow-hidden">
+            <main className="flex-1 relative flex flex-col md:flex-row overflow-hidden">
                 {/* Full Screen Generation Overlay */}
                 <AnimatePresence>
                     {status === 'generating' && (
@@ -125,15 +126,33 @@ export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
                     )}
                 </AnimatePresence>
 
+                {/* Mobile Tabs Header - Always visible on mobile when not generating */}
+                {status !== 'generating' && (
+                    <div className="md:hidden w-full flex p-2 bg-[#050505] border-b border-white/5 gap-2 z-50 pt-20">
+                        <button
+                            onClick={() => setActiveTab('preview')}
+                            className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-lg transition-colors ${activeTab === 'preview' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/5 text-white/50 border border-transparent'}`}
+                        >
+                            Game Preview
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('chat')}
+                            className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-lg transition-colors ${activeTab === 'chat' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/5 text-white/50 border border-transparent'}`}
+                        >
+                            Chat & Logic
+                        </button>
+                    </div>
+                )}
+
                 {/* The actual Game View (only visible when not generating) */}
-                <div className="flex-1 relative z-10 bg-black">
+                <div className={`flex-1 relative z-10 bg-black ${status !== 'generating' && activeTab !== 'preview' ? 'hidden md:block' : ''}`}>
                     {children}
                 </div>
 
                 {/* Side Chat - Only visible during or after play */}
                 {status !== 'generating' && (
-                    <aside className="w-[400px] border-l border-white/5 bg-[#0d0d14] flex flex-col z-50">
-                        <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
+                    <aside className={`w-full md:w-[400px] border-t md:border-t-0 md:border-l border-white/5 bg-[#0d0d14] flex flex-col z-50 ${activeTab !== 'chat' ? 'hidden md:flex' : 'flex'}`}>
+                        <div className="hidden md:flex p-4 border-b border-white/5 bg-white/[0.02] items-center gap-2">
                             <div className="size-2 rounded-full bg-terminal-green"></div>
                             <span className="text-[10px] font-black tracking-widest uppercase text-white/50">Runtime Assistant</span>
                         </div>

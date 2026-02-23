@@ -4,6 +4,7 @@ import PlatformManager from './PlatformManager';
 import CollisionHandler from './PlatformerCollisionHandler';
 import EnvironmentManager from '../../core/EnvironmentManager';
 import JuiceManager from '../../core/JuiceManager';
+import { createMobileControls } from '../../core/MovementManager';
 
 export default class BasePlatformer extends Phaser.Scene {
     constructor() {
@@ -122,6 +123,9 @@ export default class BasePlatformer extends Phaser.Scene {
                 jump: Phaser.Input.Keyboard.KeyCodes.SPACE,
                 reset: Phaser.Input.Keyboard.KeyCodes.R
             });
+
+            this.mobileInput = createMobileControls(this);
+
             console.log('BasePlatformer: create success');
         } catch (error) {
             console.error('BasePlatformer: Critical error in create:', error);
@@ -172,10 +176,10 @@ export default class BasePlatformer extends Phaser.Scene {
         const canWallJump = onWall && !onGround;
 
         // Horizontal Movement
-        if (this.cursors.left.isDown) {
+        if (this.cursors.left.isDown || this.mobileInput.left) {
             this.player.setVelocityX(-this.gameConfig.player.speed);
             this.player.flipX = true;
-        } else if (this.cursors.right.isDown) {
+        } else if (this.cursors.right.isDown || this.mobileInput.right) {
             this.player.setVelocityX(this.gameConfig.player.speed);
             this.player.flipX = false;
         } else {
@@ -183,7 +187,7 @@ export default class BasePlatformer extends Phaser.Scene {
         }
 
         // Jump
-        if (Phaser.Input.Keyboard.JustDown(this.keys.jump)) {
+        if (Phaser.Input.Keyboard.JustDown(this.keys.jump) || this.mobileInput.justAction) {
             if (canJump) {
                 this.player.setVelocityY(this.gameConfig.player.jumpForce);
                 this.lastGroundedTime = 0;
@@ -209,6 +213,9 @@ export default class BasePlatformer extends Phaser.Scene {
             console.error('BasePlatformer: Error in platforms update:', e);
         }
         this.bg.tilePositionX = this.cameras.main.scrollX * 0.5;
+
+        // Reset just button events
+        if (this.mobileInput) this.mobileInput.justAction = false;
     }
 
     collectItem(player, item) {

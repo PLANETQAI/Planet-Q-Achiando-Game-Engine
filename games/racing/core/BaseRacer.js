@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import JuiceManager from '../../core/JuiceManager';
+import { createMobileControls } from '../../core/MovementManager';
 
 export default class BaseRacer extends Phaser.Scene {
     constructor() {
@@ -127,6 +128,7 @@ export default class BaseRacer extends Phaser.Scene {
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.mobileInput = createMobileControls(this);
 
         // UI
         this.scoreText = this.add.text(10, 10, 'SCORE: 0', { font: 'bold 16px monospace', fill: '#00ffff' });
@@ -296,11 +298,11 @@ export default class BaseRacer extends Phaser.Scene {
         if (this.rightBorder) this.rightBorder.tilePositionY -= scrollSpeed;
 
         // Steering & Tilting
-        if (this.cursors.left.isDown) {
+        if (this.cursors.left.isDown || this.mobileInput.left) {
             this.car.setVelocityX(-handling);
             this.car.setAngle(Phaser.Math.Interpolation.Linear([this.car.angle, -20], 0.1));
             this.car.setScale(this.gameConfig.car.scale * 0.9, this.gameConfig.car.scale * 1.1); // Squash
-        } else if (this.cursors.right.isDown) {
+        } else if (this.cursors.right.isDown || this.mobileInput.right) {
             this.car.setVelocityX(handling);
             this.car.setAngle(Phaser.Math.Interpolation.Linear([this.car.angle, 20], 0.1));
             this.car.setScale(this.gameConfig.car.scale * 0.9, this.gameConfig.car.scale * 1.1); // Squash
@@ -311,14 +313,14 @@ export default class BaseRacer extends Phaser.Scene {
         }
 
         // Acceleration/Braking
-        if (this.cursors.up.isDown) {
+        if (this.cursors.up.isDown || this.mobileInput.up) {
             this.car.setVelocityY(-handling * 0.5);
             // Speed Warp Effect
             if (this.juice) {
                 this.cameras.main.setZoom(Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, 1.05], 0.05));
                 if (Math.random() > 0.8) this.juice.explode(this.car.x, this.car.y + 30, 'sparks');
             }
-        } else if (this.cursors.down.isDown) {
+        } else if (this.cursors.down.isDown || this.mobileInput.down) {
             this.car.setVelocityY(handling * 0.5);
             this.cameras.main.setZoom(Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, 0.95], 0.05));
         } else {
@@ -327,7 +329,7 @@ export default class BaseRacer extends Phaser.Scene {
         }
 
         // Jump/Hop Logic
-        if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && !this.isHopping) {
+        if ((Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.mobileInput.justAction) && !this.isHopping) {
             this.executeHop();
         }
 
@@ -342,6 +344,9 @@ export default class BaseRacer extends Phaser.Scene {
         this.collectibles.children.each(item => {
             if (item.y > 650) item.destroy();
         });
+
+        // Reset just action
+        if (this.mobileInput) this.mobileInput.justAction = false;
     }
 
     executeHop() {
