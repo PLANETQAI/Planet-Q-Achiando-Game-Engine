@@ -84,7 +84,13 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
     return (
         <div className="flex-1 relative group bg-[#050505] h-full min-h-[400px] overflow-hidden">
             {isPlaying && activeScene ? (
-                <PhaserGame config={phaserConfig} category={gameConfig?.category} />
+                <PhaserGame
+                    config={phaserConfig}
+                    category={gameConfig?.category}
+                    name={gameConfig?.name}
+                    status={status}
+                    onStop={handleStop}
+                />
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                     {gameConfig?.config?.background && isReady ? (
@@ -142,26 +148,18 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
                 </button>
             </div>
 
-            {/* Stop Button (Only when playing) */}
-            {isPlaying && (
-                <button
-                    onClick={handleStop}
-                    className="absolute bottom-12 left-12 z-10 flex items-center gap-3 px-6 py-2 rounded-lg bg-red-500/10 text-xs font-black hover:bg-red-500/20 transition-all text-red-400 border border-red-500/20 backdrop-blur-md uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(239,68,68,0.1)]"
-                >
-                    <Square className="w-3.5 h-3.5 fill-current" />
-                    Terminate Process
-                </button>
-            )}
 
             {/* Game Info Overlay */}
-            <div className="absolute top-6 right-6 text-right pointer-events-none z-10">
-                <div className="text-[32px] font-black italic tracking-tighter text-white/90 leading-none drop-shadow-lg">
-                    {gameConfig?.name || 'VIBE EXPERIMENT'}
+            {!isPlaying && (
+                <div className="absolute top-6 right-6 text-right pointer-events-none z-10">
+                    <div className="text-[32px] font-black italic tracking-tighter text-white/90 leading-none drop-shadow-lg">
+                        {gameConfig?.name || 'VIBE EXPERIMENT'}
+                    </div>
+                    <div className="text-[10px] font-mono text-primary font-bold tracking-widest mt-1">
+                        {status === 'generating' ? 'GENERATING...' : 'STABLE BUILD v0.1.2'}
+                    </div>
                 </div>
-                <div className="text-[10px] font-mono text-primary font-bold tracking-widest mt-1">
-                    {status === 'generating' ? 'GENERATING...' : 'STABLE BUILD v0.1.2'}
-                </div>
-            </div>
+            )}
         </div>
     );
 }
