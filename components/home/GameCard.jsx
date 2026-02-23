@@ -54,12 +54,20 @@ export default function GameCard({ game }) {
                 </div>
 
                 {/* Centered Play Button Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-10 scale-90 group-hover:scale-100">
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-10 scale-90 group-hover:scale-100 gap-4">
                     <Link
-                        href={`/play/${game.id}`}
+                        href={`/play/${game.id}/view`}
                         className="size-20 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.5)]"
+                        title="Quick Play"
                     >
                         <Play className="w-8 h-8 fill-black ml-1" />
+                    </Link>
+                    <Link
+                        href={`/play/${game.id}`}
+                        className="size-12 bg-primary/20 backdrop-blur-md text-primary border border-primary/30 rounded-full flex items-center justify-center hover:bg-primary/40 transition-all shadow-xl"
+                        title="Vibe Code"
+                    >
+                        <Zap className="w-5 h-5 fill-primary" />
                     </Link>
                 </div>
             </div>

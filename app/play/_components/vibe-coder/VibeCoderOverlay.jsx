@@ -9,7 +9,7 @@ import { getSimulationConfig, VIBE_STEPS } from '@/lib/vibeCoder';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
+export default function VibeCoderOverlay({ children, onSend, status, prompt, hideEditor = false, gameConfig = null }) {
     const [currentStep, setCurrentStep] = useState(null);
     const [steps, setSteps] = useState([]);
     const [activeTab, setActiveTab] = useState('preview'); // 'preview' or 'chat'
@@ -17,12 +17,19 @@ export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
     useEffect(() => {
         if (status === 'generating') {
             const config = getSimulationConfig(prompt);
-            setSteps(config.steps);
+            // If it's a puzzle, skip asset generation step or rename it
+            const filteredSteps = config.steps.map(s => {
+                if (s.id === VIBE_STEPS.ASSETS && prompt.toLowerCase().includes('puzzle')) {
+                    return { ...s, id: 'structure', duration: 3000 };
+                }
+                return s;
+            });
+            setSteps(filteredSteps);
 
             let currentIdx = 0;
             const executeStep = (idx) => {
-                if (idx >= config.steps.length) return;
-                const step = config.steps[idx];
+                if (idx >= filteredSteps.length) return;
+                const step = filteredSteps[idx];
                 setCurrentStep(step.id);
                 setTimeout(() => executeStep(idx + 1), step.duration);
             };
@@ -38,26 +45,28 @@ export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
     return (
         <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-[#0a0a0f] font-display text-white relative">
             {/* Minimalist Header */}
-            <header className="h-20 flex items-center justify-between px-12 bg-transparent z-50 absolute top-0 left-0 right-0">
-                <div className="flex items-center gap-4">
-                    <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(102,104,240,0.5)]">
-                        <Bolt className="w-6 h-6 text-white" />
+            {!hideEditor && (
+                <header className="h-20 flex items-center justify-between px-12 bg-transparent z-50 absolute top-0 left-0 right-0">
+                    <div className="flex items-center gap-4">
+                        <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(102,104,240,0.5)]">
+                            <Bolt className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-black tracking-tighter italic leading-none">VibeCoder AI</h1>
+                            <div className="text-[10px] font-mono text-white/30 tracking-[0.3em] uppercase mt-1">Next-Gen Engine</div>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-black tracking-tighter italic leading-none">VibeCoder AI</h1>
-                        <div className="text-[10px] font-mono text-white/30 tracking-[0.3em] uppercase mt-1">Next-Gen Engine</div>
-                    </div>
-                </div>
 
-                {status === 'generating' && (
-                    <div className="flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
-                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-white/70">
-                            Forging: <span className="text-white">{prompt || 'NEON WORLD'}</span>
-                        </span>
-                    </div>
-                )}
-            </header>
+                    {status === 'generating' && (
+                        <div className="flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
+                            <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                            <span className="text-xs font-bold uppercase tracking-widest text-white/70">
+                                Forging: <span className="text-white">{prompt || 'NEON WORLD'}</span>
+                            </span>
+                        </div>
+                    )}
+                </header>
+            )}
 
             <main className="flex-1 relative flex flex-col md:flex-row overflow-hidden">
                 {/* Full Screen Generation Overlay */}
@@ -107,7 +116,8 @@ export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
                                             </div>
                                             <h2 className="text-4xl font-black tracking-tighter italic flex items-center gap-4">
                                                 {currentStep === VIBE_STEPS.ASSETS ? 'PREPARING ASSETS' :
-                                                    currentStep === VIBE_STEPS.LOGIC ? 'HANDLING LOGIC' : 'COMPLETE'}
+                                                    currentStep === VIBE_STEPS.LOGIC ? 'HANDLING LOGIC' :
+                                                        currentStep === 'structure' ? 'STRUCTURING GRID' : 'COMPLETE'}
                                                 <span className="text-white/10 text-6xl">/</span>
                                             </h2>
                                         </div>
@@ -127,7 +137,7 @@ export default function VibeCoderOverlay({ children, onSend, status, prompt }) {
                 </AnimatePresence>
 
                 {/* Mobile Tabs Header - Always visible on mobile when not generating */}
-                {status !== 'generating' && (
+                {status !== 'generating' && !hideEditor && (
                     <div className="md:hidden w-full flex p-2 bg-[#050505] border-b border-white/5 gap-2 z-50 pt-20">
                         <button
                             onClick={() => setActiveTab('preview')}

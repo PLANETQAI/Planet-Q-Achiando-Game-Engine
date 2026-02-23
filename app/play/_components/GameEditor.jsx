@@ -4,8 +4,6 @@ import { useState } from 'react';
 import VibeCoderOverlay from './vibe-coder/VibeCoderOverlay';
 import GamePreview from './GamePreview';
 import { getGameById } from '@/lib/gameRegistry';
-import { selectGameId } from '@/lib/gameSelector';
-import { buildGameConfig } from '@/lib/configBuilder';
 import { saveGame, getSavedGameById } from '@/lib/storage';
 
 export default function GameEditor({ mode, id }) {
@@ -16,26 +14,53 @@ export default function GameEditor({ mode, id }) {
     const [gameConfig, setGameConfig] = useState(initialGame);
     const [prompt, setPrompt] = useState('');
 
-    const handleGenerate = (userPrompt) => {
+    const handleGenerate = async (userPrompt) => {
         setPrompt(userPrompt);
         setStatus('generating');
 
-        // 1. Select the best template
-        const templateId = selectGameId(userPrompt);
+        try {
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: userPrompt,
+                    currentConfig: gameConfig // Pass current config for iterative editing
+                })
+            });
 
-        // 2. Build the customized config
-        const finalConfig = buildGameConfig(templateId, userPrompt);
+            if (!response.ok) throw new Error('Generation failed');
 
-        // Simulate generation delay for UX
-        setTimeout(() => {
+            const finalConfig = await response.json();
+
             setGameConfig(finalConfig);
             saveGame(finalConfig);
             setStatus('ready');
-        }, 16000); // 16 seconds to cover all simulation steps (5 steps * ~3s)
+        } catch (error) {
+            console.error('Generation Error:', error);
+            setStatus('idle');
+            alert('Vibe Coding failed. Check console for details.');
+        }
     };
 
+    if (mode === 'view') {
+        return (
+            <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-[#0a0a0f] font-display text-white relative">
+                <GamePreview
+                    gameConfig={gameConfig}
+                    status={status}
+                    autoPlay={!!id}
+                />
+            </div>
+        );
+    }
+
     return (
-        <VibeCoderOverlay onSend={handleGenerate} status={status} prompt={prompt}>
+        <VibeCoderOverlay
+            onSend={handleGenerate}
+            status={status}
+            prompt={prompt}
+            gameConfig={gameConfig}
+        >
             <GamePreview
                 gameConfig={gameConfig}
                 status={status}

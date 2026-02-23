@@ -191,7 +191,20 @@ export default class BasePlatformer extends Phaser.Scene {
                 reset: Phaser.Input.Keyboard.KeyCodes.R
             });
 
-            this.mobileInput = createMobileControls(this);
+            this.vibeMobileControls = { left: false, right: false };
+            this.events.on('vibe-mobile-action', (action) => {
+                if (action === 'jump') {
+                    this.doJump = true;
+                } else if (action === 'hold-left') {
+                    this.vibeMobileControls.left = true;
+                } else if (action === 'release-left') {
+                    this.vibeMobileControls.left = false;
+                } else if (action === 'hold-right') {
+                    this.vibeMobileControls.right = true;
+                } else if (action === 'release-right') {
+                    this.vibeMobileControls.right = false;
+                }
+            });
 
             console.log('BasePlatformer: create success');
         } catch (error) {
@@ -276,10 +289,10 @@ export default class BasePlatformer extends Phaser.Scene {
         const canWallJump = onWall && !onGround;
 
         // Horizontal Movement
-        if (this.cursors.left.isDown || this.mobileInput.left) {
+        if (this.cursors.left.isDown || this.vibeMobileControls.left) {
             this.player.setVelocityX(-this.gameConfig.player.speed);
             this.player.flipX = true;
-        } else if (this.cursors.right.isDown || this.mobileInput.right) {
+        } else if (this.cursors.right.isDown || this.vibeMobileControls.right) {
             this.player.setVelocityX(this.gameConfig.player.speed);
             this.player.flipX = false;
         } else {
@@ -287,7 +300,8 @@ export default class BasePlatformer extends Phaser.Scene {
         }
 
         // Jump
-        if (Phaser.Input.Keyboard.JustDown(this.keys.jump) || this.mobileInput.justAction) {
+        if (Phaser.Input.Keyboard.JustDown(this.keys.jump) || this.doJump) {
+            this.doJump = false; // Reset mobile jump flag
             if (canJump) {
                 this.player.setVelocityY(this.gameConfig.player.jumpForce);
                 this.jumpCount++;

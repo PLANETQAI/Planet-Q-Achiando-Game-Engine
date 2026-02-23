@@ -1,14 +1,19 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Phaser from 'phaser';
+import MobileControls from './MobileControls';
 
-export default function PhaserGame({ config }) {
+export default function PhaserGame({ config, category }) {
     const gameRef = useRef(null);
     const parentRef = useRef(null);
+    const [isTouch, setIsTouch] = useState(false);
 
     useEffect(() => {
+        // Detect touch device
+        setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
         if (!parentRef.current) return;
 
         const gameConfig = {
@@ -23,6 +28,12 @@ export default function PhaserGame({ config }) {
                     gravity: { y: 0 },
                     debug: false
                 }
+            },
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 800,
+                height: 600
             }
         };
 
@@ -34,12 +45,41 @@ export default function PhaserGame({ config }) {
         if (sceneClass) {
             game.events.once('ready', () => {
                 const sceneKey = sceneClass.name || 'DefaultScene';
-                // Add the scene and start it with data
                 game.scene.add(sceneKey, sceneClass, true, config.data);
             });
         }
 
+        return () => {
+            if (gameRef.current) {
+                gameRef.current.destroy(true);
+            }
+        };
+
     }, [config]);
 
-    return <div ref={parentRef} className="w-full h-full flex items-center justify-center" />;
+    const handleMobileAction = (action) => {
+        if (!gameRef.current) return;
+
+        // Find the active running scene
+        const scenes = gameRef.current.scene.getScenes(true);
+        if (scenes.length > 0) {
+            const activeScene = scenes[0];
+            // Emit as a custom event the scene can listen to
+            activeScene.events.emit('vibe-mobile-action', action);
+        }
+    };
+
+    return (
+        <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
+            <div ref={parentRef} className="w-full h-full" />
+
+            {isTouch && (
+                <MobileControls
+                    category={category}
+                    onAction={handleMobileAction}
+                />
+            )}
+        </div>
+    );
 }
+

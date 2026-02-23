@@ -38,7 +38,7 @@ export default function Hero() {
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">PlanetQ AI Game Engine v2.0</span>
                     </div>
 
-                    <h1 className="text-6xl md:text-8xl font-black mb-8 leading-[0.9] tracking-tighter italic">
+                    <h1 className="text-4xl md:text-8xl font-black mb-8 leading-[0.9] tracking-tighter italic">
                         DREAM IT.<br />
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-white to-secondary">PLAY IT.</span>
                     </h1>
@@ -58,7 +58,7 @@ export default function Hero() {
                                 className="w-full h-32 bg-transparent border-none focus:ring-0 text-white placeholder-white/20 p-6 text-lg resize-none custom-scrollbar font-medium"
                             />
 
-                            <div className="w-full flex items-center justify-between p-4 pt-0">
+                            <div className="w-full flex flex-col md:flex-row items-center justify-between p-4 pt-0 gap-4">
                                 <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5 text-[10px] font-bold text-white/30 tracking-widest uppercase">
                                     <Sparkles className="w-3 h-3" /> 2.4B Params Active
                                 </div>

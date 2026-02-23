@@ -84,7 +84,7 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
     return (
         <div className="flex-1 relative group bg-[#050505] h-full min-h-[400px] overflow-hidden">
             {isPlaying && activeScene ? (
-                <PhaserGame config={phaserConfig} />
+                <PhaserGame config={phaserConfig} category={gameConfig?.category} />
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                     {gameConfig?.config?.background && isReady ? (

@@ -36,19 +36,22 @@ export default function GameGrid() {
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-white italic tracking-tighter mb-12">FEATURED WORLDS</h2>
 
+
                     {/* PlanetQ Pill Filters */}
-                    <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl">
-                        {filters.map(f => (
-                            <button
-                                key={f.id}
-                                onClick={() => setActiveFilter(f.id)}
-                                className={`px-6 py-2.5 rounded-xl transition-all text-xs font-black uppercase tracking-widest ${activeFilter === f.id
-                                    ? 'bg-primary text-black shadow-[0_0_20px_rgba(0,242,255,0.4)]'
-                                    : 'text-white/40 hover:text-white hover:bg-white/5'
-                                    }`}>
-                                {f.label}
-                            </button>
-                        ))}
+                    <div className="w-full flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl overflow-x-auto no-scrollbar">
+                        <div className="flex gap-2 min-w-max px-2">
+                            {filters.map(f => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => setActiveFilter(f.id)}
+                                    className={`px-6 py-2.5 rounded-xl transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap ${activeFilter === f.id
+                                        ? 'bg-primary text-black shadow-[0_0_20px_rgba(0,242,255,0.4)]'
+                                        : 'text-white/40 hover:text-white hover:bg-white/5'
+                                        }`}>
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

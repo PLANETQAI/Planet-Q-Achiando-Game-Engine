@@ -1,56 +1,38 @@
 
+/**
+ * Standalone helper to bridge React MobileControls with Phaser state.
+ */
 export function createMobileControls(scene) {
     const mobileInput = { left: false, right: false, up: false, down: false, action: false, justAction: false };
 
-    // Only setup if touch is supported OR screen is very small (mobile size)
-    const isMobileSize = scene.cameras.main.width <= 600 || window.innerWidth <= 600;
-    if (!scene.sys.game.device.input.touch && !isMobileSize && scene.sys.game.device.os.desktop) return mobileInput;
-
-    // Add extra pointer to support multi-touch (e.g., move + jump)
-    scene.input.addPointer(2);
-
-    const width = scene.cameras.main.width;
-    const height = scene.cameras.main.height;
-
-    // Visual styles for on-screen buttons
-    const createButton = (x, y, label, key) => {
-        const btn = scene.add.circle(x, y, 40, 0xffffff, 0.2)
-            .setScrollFactor(0)
-            .setInteractive()
-            .setDepth(1000); // Ensure they're on top of everything
-
-        const text = scene.add.text(x, y, label, { font: 'bold 24px Arial', fill: '#ffffff' })
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(1001);
-
-        btn.on('pointerdown', () => {
-            btn.setAlpha(0.5);
-            mobileInput[key] = true;
-            if (key === 'action') mobileInput.justAction = true;
-        });
-        btn.on('pointerup', () => {
-            btn.setAlpha(0.2);
-            mobileInput[key] = false;
-        });
-        btn.on('pointerout', () => {
-            btn.setAlpha(0.2);
-            mobileInput[key] = false;
-        });
-
-        return btn;
-    };
-
-    // D-Pad (Left side)
-    const padX = 80;
-    const padY = height - 80;
-    createButton(padX - 50, padY, '←', 'left');
-    createButton(padX + 50, padY, '→', 'right');
-    createButton(padX, padY - 50, '↑', 'up');
-    createButton(padX, padY + 50, '↓', 'down');
-
-    // Action Button (Right side)
-    createButton(width - 80, height - 80, 'A', 'action');
+    // Listen for events from the React layer via the Scene's event bus
+    scene.events.on('vibe-mobile-action', (action) => {
+        if (action === 'left') {
+            mobileInput.left = true;
+            // Clear opposite
+            mobileInput.right = false;
+        } else if (action === 'right') {
+            mobileInput.right = true;
+            mobileInput.left = false;
+        } else if (action === 'up') {
+            mobileInput.up = true;
+            mobileInput.down = false;
+        } else if (action === 'down') {
+            mobileInput.down = true;
+            mobileInput.up = false;
+        } else if (action === 'fire' || action === 'jump' || action === 'action') {
+            mobileInput.action = true;
+            mobileInput.justAction = true;
+        } else if (action === 'hold-left') {
+            mobileInput.left = true;
+        } else if (action === 'release-left') {
+            mobileInput.left = false;
+        } else if (action === 'hold-right') {
+            mobileInput.right = true;
+        } else if (action === 'release-right') {
+            mobileInput.right = false;
+        }
+    });
 
     return mobileInput;
 }
@@ -87,7 +69,7 @@ export default class MovementManager {
         this.jumpCount = 0;
         this.maxJumps = this.config.maxJumps || 1;
 
-        // Use the standalone helper
+        // Use the event-based bridge
         this.mobileInput = createMobileControls(this.scene);
     }
 
@@ -112,8 +94,17 @@ export default class MovementManager {
                 break;
         }
 
-        // Reset just action flag after update is processed
-        this.mobileInput.justAction = false;
+        // Reset just action flag and discrete taps after update is processed
+        if (this.mobileInput.justAction) {
+            this.mobileInput.justAction = false;
+            // For discrete D-Pad taps that aren't 'hold' events, clear them
+            if (!this.scene.input.pointer1.isDown) {
+                this.mobileInput.up = false;
+                this.mobileInput.down = false;
+                this.mobileInput.left = false;
+                this.mobileInput.right = false;
+            }
+        }
     }
 
     handle4WayMovement(speed) {
@@ -162,13 +153,12 @@ export default class MovementManager {
             if (isGrounded || this.jumpCount < this.maxJumps) {
                 this.entity.setVelocityY(jumpForce);
                 this.jumpCount++;
+                this.mobileInput.justAction = false;
             }
         }
     }
 
     handleRacingMovement(speed, jumpForce) {
-        // In racing, 'speed' is often handled by the background scroll, 
-        // but player can move within the screen.
         const handling = this.config.handling || speed;
 
         if (this.cursors.left.isDown || this.wasd.left.isDown || this.mobileInput.left) {
@@ -190,10 +180,10 @@ export default class MovementManager {
             this.entity.setVelocityY(0);
         }
 
-        // Jump capability in racing!
-        const isGrounded = !this.isJumping; // Simple racing jump
+        const isGrounded = !this.isJumping;
         if ((Phaser.Input.Keyboard.JustDown(this.wasd.space) || this.mobileInput.justAction) && isGrounded) {
             this.isJumping = true;
+            this.mobileInput.justAction = false;
             this.scene.tweens.add({
                 targets: this.entity,
                 scale: this.entity.scale * 1.5,
