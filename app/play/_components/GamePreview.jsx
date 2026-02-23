@@ -119,6 +119,45 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
                                 </div>
                                 <h2 className="text-2xl font-bold text-white tracking-widest uppercase">{gameConfig?.name}</h2>
                                 <p className="text-white/40 font-mono text-xs uppercase tracking-[0.2em] animate-pulse">Click to Initialise</p>
+
+                                {/* How to Play text */}
+                                <div className="mt-8 pt-8 border-t border-white/10 max-w-sm mx-auto">
+                                    <h3 className="text-white/80 font-bold mb-3 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                                        How to Play
+                                    </h3>
+                                    <div className="text-white/60 font-mono text-xs leading-relaxed space-y-3">
+                                        {gameConfig?.category === 'shooter' && (
+                                            <>
+                                                <p><strong className="text-white">Mobile:</strong> Use left D-Pad to move. Hold right <strong>FIRE</strong> button to shoot.</p>
+                                                <p><strong className="text-white">Desktop:</strong> Arrow keys to move, Spacebar to shoot.</p>
+                                            </>
+                                        )}
+                                        {gameConfig?.category === 'platformer' && (
+                                            <>
+                                                <p><strong className="text-white">Mobile:</strong> Swipe UP anywhere to jump. Hold LEFT/RIGHT zones to run.</p>
+                                                <p><strong className="text-white">Desktop:</strong> Arrow keys to move, Spacebar or UP to jump.</p>
+                                            </>
+                                        )}
+                                        {gameConfig?.category === 'racing' && (
+                                            <>
+                                                <p><strong className="text-white">Mobile:</strong> Use left D-Pad to steer. Hold right <strong>BOOST</strong> button to accelerate.</p>
+                                                <p><strong className="text-white">Desktop:</strong> Arrow keys to move, Spacebar to boost.</p>
+                                            </>
+                                        )}
+                                        {gameConfig?.category === 'fighting' && (
+                                            <>
+                                                <p><strong className="text-white">Mobile:</strong> Use left D-Pad to move. Tap <strong>ATTACK</strong> button to strike.</p>
+                                                <p><strong className="text-white">Desktop:</strong> Arrow keys to move, Spacebar to attack.</p>
+                                            </>
+                                        )}
+                                        {(!['shooter', 'platformer', 'racing', 'fighting'].includes(gameConfig?.category)) && (
+                                            <>
+                                                <p><strong className="text-white">Mobile:</strong> Tap directly on the grid to play.</p>
+                                                <p><strong className="text-white">Desktop:</strong> Use mouse to click or drag.</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-2 opacity-30">

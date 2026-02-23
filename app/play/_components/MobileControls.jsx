@@ -53,28 +53,39 @@ export default function MobileControls({ category, onAction }) {
                         className="absolute inset-x-0 bottom-0 p-8 flex justify-between items-end pointer-events-auto"
                     >
                         {/* Virtual D-Pad */}
-                        <div className="grid grid-cols-3 gap-2 opacity-60 active:opacity-100 transition-opacity">
+                        <div className="grid grid-cols-3 gap-2 opacity-80 active:opacity-100 transition-opacity">
                             <div />
-                            <ControlBtn icon={<ChevronUp />} onTouch={() => onAction('up')} />
+                            <ControlBtn icon={<ChevronUp />} onTouchStart={() => onAction('hold-up')} onTouchEnd={() => onAction('release-up')} />
                             <div />
-                            <ControlBtn icon={<ChevronLeft />} onTouch={() => onAction('left')} />
-                            <ControlBtn icon={<ChevronDown />} onTouch={() => onAction('down')} />
-                            <ControlBtn icon={<ChevronRight />} onTouch={() => onAction('right')} />
+                            <ControlBtn icon={<ChevronLeft />} onTouchStart={() => onAction('hold-left')} onTouchEnd={() => onAction('release-left')} />
+                            <ControlBtn icon={<ChevronDown />} onTouchStart={() => onAction('hold-down')} onTouchEnd={() => onAction('release-down')} />
+                            <ControlBtn icon={<ChevronRight />} onTouchStart={() => onAction('hold-right')} onTouchEnd={() => onAction('release-right')} />
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-4">
-                            <ControlBtn
-                                icon={<Target className="w-8 h-8" />}
-                                onTouch={() => onAction('fire')}
-                                className="size-20 bg-primary/40 text-white rounded-full border-2 border-primary/60 scale-110"
-                            />
-                            {category === 'racing' && (
+                        <div className="flex gap-4 items-end">
+                            <div className="flex flex-col items-center gap-2">
                                 <ControlBtn
-                                    icon={<Zap className="w-8 h-8" />}
-                                    onTouch={() => onAction('boost')}
-                                    className="size-16 bg-secondary/40 text-white rounded-full border-2 border-secondary/60"
+                                    icon={<Target className="w-8 h-8" />}
+                                    onTouchStart={() => onAction('hold-fire')}
+                                    onTouchEnd={() => onAction('release-fire')}
+                                    className="size-20 bg-primary/40 text-white rounded-full border-2 border-primary/60"
                                 />
+                                <span className="text-[10px] font-black tracking-[0.2em] text-white/50 uppercase">
+                                    {category === 'fighting' ? 'ATTACK' : 'FIRE'}
+                                </span>
+                            </div>
+
+                            {category === 'racing' && (
+                                <div className="flex flex-col items-center gap-2">
+                                    <ControlBtn
+                                        icon={<Zap className="w-8 h-8" />}
+                                        onTouchStart={() => onAction('hold-boost')}
+                                        onTouchEnd={() => onAction('release-boost')}
+                                        className="size-16 bg-secondary/40 text-white rounded-full border-2 border-secondary/60"
+                                    />
+                                    <span className="text-[10px] font-black tracking-[0.2em] text-white/50 uppercase">BOOST</span>
+                                </div>
                             )}
                         </div>
                     </motion.div>
@@ -111,14 +122,22 @@ export default function MobileControls({ category, onAction }) {
     );
 }
 
-function ControlBtn({ icon, onTouch, className = "" }) {
+function ControlBtn({ icon, onTouchStart, onTouchEnd, className = "" }) {
     return (
         <button
             onPointerDown={(e) => {
                 e.preventDefault();
-                onTouch();
+                if (onTouchStart) onTouchStart();
             }}
-            className={`size-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center text-white active:bg-primary/40 active:border-primary/60 active:scale-95 transition-all ${className}`}
+            onPointerUp={(e) => {
+                e.preventDefault();
+                if (onTouchEnd) onTouchEnd();
+            }}
+            onPointerLeave={(e) => {
+                e.preventDefault();
+                if (onTouchEnd) onTouchEnd();
+            }}
+            className={`size-14 bg-white/20 backdrop-blur-md border border-white/30 rounded-xl flex items-center justify-center text-white active:bg-primary/50 active:border-primary/80 active:scale-95 transition-all shadow-lg ${className}`}
         >
             {icon}
         </button>

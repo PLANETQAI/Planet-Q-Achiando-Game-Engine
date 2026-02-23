@@ -7,30 +7,31 @@ export function createMobileControls(scene) {
 
     // Listen for events from the React layer via the Scene's event bus
     scene.events.on('vibe-mobile-action', (action) => {
-        if (action === 'left') {
+        if (action === 'left' || action === 'hold-left') {
             mobileInput.left = true;
-            // Clear opposite
             mobileInput.right = false;
-        } else if (action === 'right') {
+        } else if (action === 'right' || action === 'hold-right') {
             mobileInput.right = true;
             mobileInput.left = false;
-        } else if (action === 'up') {
+        } else if (action === 'up' || action === 'hold-up') {
             mobileInput.up = true;
             mobileInput.down = false;
-        } else if (action === 'down') {
+        } else if (action === 'down' || action === 'hold-down') {
             mobileInput.down = true;
             mobileInput.up = false;
-        } else if (action === 'fire' || action === 'jump' || action === 'action') {
+        } else if (action === 'fire' || action === 'jump' || action === 'action' || action === 'hold-fire' || action === 'hold-boost') {
             mobileInput.action = true;
             mobileInput.justAction = true;
-        } else if (action === 'hold-left') {
-            mobileInput.left = true;
         } else if (action === 'release-left') {
             mobileInput.left = false;
-        } else if (action === 'hold-right') {
-            mobileInput.right = true;
         } else if (action === 'release-right') {
             mobileInput.right = false;
+        } else if (action === 'release-up') {
+            mobileInput.up = false;
+        } else if (action === 'release-down') {
+            mobileInput.down = false;
+        } else if (action === 'release-fire' || action === 'release-boost' || action === 'release-action') {
+            mobileInput.action = false;
         }
     });
 
@@ -94,16 +95,9 @@ export default class MovementManager {
                 break;
         }
 
-        // Reset just action flag and discrete taps after update is processed
+        // Reset just action flag after update is processed
         if (this.mobileInput.justAction) {
             this.mobileInput.justAction = false;
-            // For discrete D-Pad taps that aren't 'hold' events, clear them
-            if (!this.scene.input.pointer1.isDown) {
-                this.mobileInput.up = false;
-                this.mobileInput.down = false;
-                this.mobileInput.left = false;
-                this.mobileInput.right = false;
-            }
         }
     }
 

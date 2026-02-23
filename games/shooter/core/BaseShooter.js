@@ -421,7 +421,7 @@ export default class BaseShooter extends Phaser.Scene {
         this.movement.update(moveMode, this.getSpeedMultiplier());
 
         // Firing
-        if (this.cursors.space.isDown) {
+        if (this.cursors.space.isDown || (this.movement && this.movement.mobileInput.action)) {
             const weaponConfig = { ...this.gameConfig.weapon, polarity: this.polarity };
             this.weapons.fire(this.player.x, this.player.y, weaponConfig);
 
