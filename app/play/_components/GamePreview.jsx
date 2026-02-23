@@ -35,7 +35,8 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
                     racing: racingMod.default,
                     skyRacer: skyRacerMod.default,
                     fighter: fighterMod.default,
-                    platformer: platformerMod.default
+                    platformer: platformerMod.default,
+                    puzzle: puzzleMod.default
                 });
             } catch (error) {
                 console.error('Failed to load game scenes:', error);
@@ -52,7 +53,9 @@ export default function GamePreview({ gameConfig, status, autoPlay }) {
                 ? scenes.fighter
                 : gameConfig?.category === 'platformer'
                     ? scenes.platformer
-                    : scenes.shooter;
+                    : gameConfig?.category === 'puzzle'
+                        ? scenes.puzzle
+                        : scenes.shooter;
 
     const handlePlay = () => {
         if (!activeScene) {

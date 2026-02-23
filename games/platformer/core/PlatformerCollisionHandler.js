@@ -25,6 +25,17 @@ export default class CollisionHandler {
         if (goal) {
             this.scene.physics.add.overlap(player, goal, this.handleGoalCollision, null, this);
         }
+
+        // Player vs Math Labels
+        if (this.scene.platforms.labels) {
+            this.scene.physics.add.overlap(player, this.scene.platforms.labels, this.handleLabelOverlap, null, this);
+        }
+    }
+
+    handleLabelOverlap(player, label) {
+        if (this.scene.handleLabelOverlap) {
+            this.scene.handleLabelOverlap(label);
+        }
     }
 
     handleGoalCollision(player, goal) {

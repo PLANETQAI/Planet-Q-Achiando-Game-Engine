@@ -42,6 +42,7 @@ export default class BasePlatformer extends Phaser.Scene {
         this.isGameOver = false;
         this.score = 0;
         this.lastGroundedTime = 0;
+        this.jumpCount = 0;
     }
 
     preload() {
@@ -56,25 +57,54 @@ export default class BasePlatformer extends Phaser.Scene {
         this.load.image('bullet_light', assetsBase + 'bullets/light_bullet.png');
         this.load.image('bullet_red', assetsBase + 'bullets/red_bullet.png');
         this.load.image('goal', assetsBase + 'spaceship/ship7.png'); // Use a ship as a goal portal
+        // Removed direct loading of coin, spike, goal, bullet_light, bullet_red as they are now generated or not needed.
 
         this.load.on('loaderror', (file) => {
             console.error('BasePlatformer: Load error', file.src);
         });
         this.load.on('complete', () => {
             console.log('BasePlatformer: Preload complete');
-            this.createNeonTextures();
+            this.createGeneratedTextures();
         });
     }
 
-    createNeonTextures() {
-        // Create a clean neon platform texture if it doesn't exist
+    createGeneratedTextures() {
+        // Neon Platform
         if (!this.textures.exists('neon_platform')) {
-            const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-            graphics.lineStyle(2, 0x00ffff, 1);
-            graphics.fillStyle(0x003333, 0.8);
-            graphics.strokeRect(0, 0, 200, 40);
-            graphics.fillRect(0, 0, 200, 40);
-            graphics.generateTexture('neon_platform', 200, 40);
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            g.lineStyle(2, 0x00ffff, 1);
+            g.fillStyle(0x003333, 0.8);
+            g.strokeRect(0, 0, 200, 40);
+            g.fillRect(0, 0, 200, 40);
+            g.generateTexture('neon_platform', 200, 40);
+        }
+
+        // Shape-based Coin (Gold Circle)
+        if (!this.textures.exists('coin')) {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            g.fillStyle(0xffff00, 1);
+            g.lineStyle(2, 0xffaa00, 1);
+            g.fillCircle(16, 16, 14);
+            g.strokeCircle(16, 16, 14);
+            g.generateTexture('coin', 32, 32);
+        }
+
+        // Shape-based Spike (Red Triangle)
+        if (!this.textures.exists('spike')) {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            g.fillStyle(0xff0000, 1);
+            g.fillTriangle(16, 2, 2, 30, 30, 30);
+            g.generateTexture('spike', 32, 32);
+        }
+
+        // Shape-based Goal (Cyan Diamond/Ring)
+        if (!this.textures.exists('goal')) {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            g.lineStyle(4, 0x00ffff, 1);
+            g.strokeCircle(32, 32, 28);
+            g.lineStyle(2, 0x00ffff, 0.5);
+            g.strokeCircle(32, 32, 18);
+            g.generateTexture('goal', 64, 64);
         }
     }
 
@@ -98,9 +128,36 @@ export default class BasePlatformer extends Phaser.Scene {
             this.collisions = new CollisionHandler(this);
 
             // Player - ensure texture exists or use fallback
-            const playerTexture = this.textures.exists('player') ? 'player' : 'bullet_light';
+            const playerTexture = this.textures.exists('player') ? 'player' : 'bullet_light'; // bullet_light is not loaded, consider a fallback generated texture or a default asset
             this.player = this.physics.add.sprite(100, 400, playerTexture);
-            this.player.setScale(this.gameConfig.player.scale);
+
+            // Intelligently cap the visual scale if the asset is an absolute unit (e.g. 1024px height)
+            let finalScale = this.gameConfig.player.scale || 0.5;
+            const maxDesiredHeight = 100;
+            const currentDisplayHeight = this.player.height * finalScale;
+
+            if (currentDisplayHeight > maxDesiredHeight) {
+                finalScale = maxDesiredHeight / this.player.height;
+            }
+
+            this.player.setScale(finalScale);
+            this.gameConfig.player.scale = finalScale; // update for references
+
+            // Fix collision box for large assets with transparency
+            const desiredWidth = 35;
+            const desiredHeight = 70;
+            // Unscaled physics body size calculation
+            const unscaledWidth = desiredWidth / finalScale;
+            const unscaledHeight = desiredHeight / finalScale;
+
+            this.player.body.setSize(unscaledWidth, unscaledHeight);
+
+            // Center X and push Y towards the bottom (so feet touch ground)
+            this.player.body.setOffset(
+                (this.player.width - unscaledWidth) / 2,
+                this.player.height - unscaledHeight - (this.player.height * 0.05)
+            );
+
             this.player.setCollideWorldBounds(true);
             this.player.body.setGravityY(this.gameConfig.player.gravity);
 
@@ -115,8 +172,18 @@ export default class BasePlatformer extends Phaser.Scene {
             // Camera
             this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
+            this.coinsCollected = 0;
+            this.totalCoins = this.platforms.totalCoinsNeeded || 0;
+            if (this.gameConfig.type === 'collect-athon') {
+                this.updateCollectUI();
+            }
+
             // UI
             this.createUI();
+
+            if (this.gameConfig.type === 'math-platformer') {
+                this.createMathUI();
+            }
 
             this.cursors = this.input.keyboard.createCursorKeys();
             this.keys = this.input.keyboard.addKeys({
@@ -141,11 +208,42 @@ export default class BasePlatformer extends Phaser.Scene {
             strokeThickness: 4
         }).setScrollFactor(0);
 
-        this.add.text(40, 130, 'CATEGORY: PLATFORMER', {
+        this.categoryText = this.add.text(40, 130, `TYPE: ${this.gameConfig.type?.toUpperCase() || 'PLATFORMER'}`, {
             font: '12px monospace',
             fill: '#00ffff',
             alpha: 0.6
         }).setScrollFactor(0);
+
+        if (this.gameConfig.type === 'collect-athon') {
+            this.collectProgressText = this.add.text(40, 150, '', {
+                font: 'bold 18px monospace',
+                fill: '#ffff00'
+            }).setScrollFactor(0);
+        }
+    }
+
+    updateCollectUI() {
+        if (this.collectProgressText) {
+            this.collectProgressText.setText(`DATA: ${this.coinsCollected}/${this.totalCoins}`);
+        }
+    }
+
+    createMathUI() {
+        this.mathPrompt = this.add.text(400, 100, '', {
+            font: 'bold 32px monospace',
+            fill: '#ffffff',
+            backgroundColor: '#000000',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5, 0).setScrollFactor(0);
+        this.updateMathQuestion();
+    }
+
+    updateMathQuestion() {
+        if (this.gameConfig.type !== 'math-platformer') return;
+        const a = Phaser.Math.Between(1, 10);
+        const b = Phaser.Math.Between(1, 10);
+        this.currentAnswer = a + b;
+        this.mathPrompt.setText(`${a} + ${b} = ?`);
     }
 
     update() {
@@ -164,6 +262,7 @@ export default class BasePlatformer extends Phaser.Scene {
         if (onGround) {
             this.lastGroundedTime = this.time.now;
             this.isWallJumping = false;
+            this.jumpCount = 0;
         }
 
         // Wall Sliding
@@ -172,7 +271,8 @@ export default class BasePlatformer extends Phaser.Scene {
             if (this.juice && Math.random() > 0.8) this.juice.explode(this.player.x, this.player.y, 'sparks');
         }
 
-        const canJump = onGround || (this.time.now - this.lastGroundedTime < this.gameConfig.player.coyoteTime);
+        const maxJumps = this.gameConfig.player.maxJumps || 1;
+        const canJump = onGround || (this.time.now - this.lastGroundedTime < this.gameConfig.player.coyoteTime) || (this.jumpCount > 0 && this.jumpCount < maxJumps);
         const canWallJump = onWall && !onGround;
 
         // Horizontal Movement
@@ -190,8 +290,13 @@ export default class BasePlatformer extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.keys.jump) || this.mobileInput.justAction) {
             if (canJump) {
                 this.player.setVelocityY(this.gameConfig.player.jumpForce);
+                this.jumpCount++;
+                if (!onGround && this.time.now - this.lastGroundedTime >= this.gameConfig.player.coyoteTime) {
+                    if (this.juice) this.juice.explode(this.player.x, this.player.y + 20, 'sparks'); // Double jump effect
+                } else {
+                    if (this.juice) this.juice.flash(this.player, 50, 0x00ffff);
+                }
                 this.lastGroundedTime = 0;
-                if (this.juice) this.juice.flash(this.player, 50, 0x00ffff);
             } else if (canWallJump) {
                 const jumpDir = onWallLeft ? 1 : -1;
                 this.player.setVelocityY(this.gameConfig.player.jumpForce * 0.9);
@@ -223,6 +328,30 @@ export default class BasePlatformer extends Phaser.Scene {
         this.score += 100;
         this.scoreText.setText('SCORE: ' + this.score);
         if (this.juice) this.juice.flash(player, 50, 0xffff00);
+
+        if (this.gameConfig.type === 'collect-athon') {
+            this.coinsCollected++;
+            this.updateCollectUI();
+        }
+    }
+
+    handleLabelOverlap(label) {
+        if (this.gameConfig.type !== 'math-platformer' || label.used) return;
+
+        if (label.isCorrect) {
+            this.score += 500;
+            this.scoreText.setText('SCORE: ' + this.score);
+            this.juice.flash(this.player, 100, 0x00ff00);
+            this.updateMathQuestion();
+            label.setStyle({ fill: '#00ff00' });
+            label.used = true;
+        } else {
+            this.juice.shake(200, 0.02);
+            this.player.setVelocityY(-400); // Bounce back
+            this.player.setVelocityX(-200);
+            label.setStyle({ fill: '#ff0000' });
+            this.time.delayedCall(500, () => label.setStyle({ fill: '#ffffff' }));
+        }
     }
 
     handleWin() {

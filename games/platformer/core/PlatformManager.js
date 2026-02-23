@@ -12,47 +12,105 @@ export default class PlatformManager {
         this.hazards = scene.physics.add.staticGroup();
         this.collectibles = scene.physics.add.staticGroup();
         this.goal = scene.physics.add.staticGroup();
+        this.labels = scene.physics.add.staticGroup();
     }
 
     generateLevel(config) {
-        // Basic rhythmic layout for the level
-        const spacing = 300;
-        const width = config.width || 2400;
+        this.type = config.type || 'standard';
 
-        // Ground floor - more consistent
+        if (this.type === 'math-platformer') {
+            this.generateMathLevel(config);
+        } else if (this.type === 'collect-athon') {
+            this.generateCollectLevel(config);
+        } else {
+            this.generateStandardLevel(config);
+        }
+    }
+
+    generateStandardLevel(config) {
+        const spacing = config.spacing || 300;
+        const width = config.width || 2400;
+        const heightVariation = config.heightVariation || 100;
+        const platformWidthScale = config.platformWidthScale || 1;
+        const movingChance = config.movingChance !== undefined ? config.movingChance : 0.2;
+        const hazardChance = config.hazardChance !== undefined ? config.hazardChance : 0.15;
+
         for (let x = 0; x < width; x += 200) {
-            if (x < 400 || Math.random() > 0.1) { // Guaranteed start area
+            if (x < 400 || Math.random() > 0.1) {
                 this.addPlatform(x + 100, 580, 1, true);
             }
         }
 
-        // Raised platforms - rhythmic and reachable
         let lastY = 450;
         for (let x = 500; x < width - 200; x += spacing) {
-            const y = Phaser.Math.Clamp(lastY + Phaser.Math.Between(-100, 100), 200, 450);
+            const y = Phaser.Math.Clamp(lastY + Phaser.Math.Between(-heightVariation, heightVariation), 200, 450);
             lastY = y;
-
-            const isMoving = Math.random() < 0.2;
-
+            const isMoving = Math.random() < movingChance;
             if (isMoving) {
                 this.addMovingPlatform(x, y);
             } else {
-                this.addPlatform(x, y, 0.6 + Math.random() * 0.4);
-
-                // Add collectibles on platforms
-                if (Math.random() < 0.6) {
-                    this.addCollectible(x, y - 40);
-                }
-
-                // Add hazards occasionally
-                if (Math.random() < 0.15) {
-                    this.addHazard(x + 40, y - 15);
-                }
+                this.addPlatform(x, y, (0.6 + Math.random() * 0.4) * platformWidthScale);
+                if (Math.random() < 0.6) this.addCollectible(x, y - 40);
+                if (Math.random() < hazardChance) this.addHazard(x + 40, y - 15);
             }
         }
-
-        // Add Goal at the far end
         this.addGoal(width - 150, lastY - 60);
+    }
+
+    generateMathLevel(config) {
+        const width = config.width || 3000;
+        const spacing = 500;
+
+        // Solid ground for start
+        this.addPlatform(150, 580, 1.5, true);
+
+        let lastY = 450;
+        for (let x = 600; x < width - 200; x += spacing) {
+            const correctVal = Phaser.Math.Between(2, 20);
+            const wrongVal = correctVal + (Math.random() > 0.5 ? 1 : -1);
+
+            const y1 = Phaser.Math.Clamp(lastY + Phaser.Math.Between(-50, 50), 200, 350);
+            const y2 = y1 + 150;
+
+            const p1 = this.addPlatform(x, y1, 0.4);
+            const p2 = this.addPlatform(x, y2, 0.4);
+
+            // Add labels
+            this.addTextLabel(x, y1 - 25, correctVal.toString(), true);
+            this.addTextLabel(x, y2 - 25, wrongVal.toString(), false);
+
+            lastY = y1;
+        }
+        this.addGoal(width - 150, lastY - 60);
+    }
+
+    generateCollectLevel(config) {
+        const width = config.width || 2000;
+        this.totalCoinsNeeded = 0;
+
+        // Flat ground with many clusters
+        for (let x = 0; x < width; x += 250) {
+            this.addPlatform(x + 125, 580, 1.2, true);
+            for (let i = 0; i < 3; i++) {
+                this.addCollectible(x + 100 + (i * 30), 540);
+                this.totalCoinsNeeded++;
+            }
+        }
+        this.addGoal(width - 150, 520);
+    }
+
+    addTextLabel(x, y, text, isCorrect) {
+        const label = this.scene.add.text(x, y, text, {
+            font: 'bold 24px Arial',
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+
+        this.labels.add(label);
+        label.isCorrect = isCorrect;
+        label.body.setSize(label.width, label.height);
+        return label;
     }
 
     addPlatform(x, y, scale = 1, isGround = false) {

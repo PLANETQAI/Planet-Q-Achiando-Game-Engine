@@ -39,26 +39,6 @@ export default function PhaserGame({ config }) {
             });
         }
 
-        return () => {
-            if (gameRef.current) {
-                const game = gameRef.current;
-                gameRef.current = null;
-
-                try {
-                    if (game.sound) {
-                        game.sound.stopAll();
-                    }
-                    game.destroy(true);
-                } catch (e) {
-                    // Ignore AudioContext errors during destruction/unmount
-                    if (e.message?.includes('AudioContext')) {
-                        console.warn('Silent Phaser AudioContext cleanup');
-                    } else {
-                        throw e;
-                    }
-                }
-            }
-        };
     }, [config]);
 
     return <div ref={parentRef} className="w-full h-full flex items-center justify-center" />;

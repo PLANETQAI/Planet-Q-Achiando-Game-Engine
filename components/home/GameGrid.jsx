@@ -9,7 +9,7 @@ export default function GameGrid() {
     const [activeFilter, setActiveFilter] = useState('all');
 
     const allGames = getAllGames().filter(g =>
-        ['shooter', 'racing', 'platform-racing', 'fighting', 'platformer'].includes(g.category?.toLowerCase())
+        ['shooter', 'racing', 'platform-racing', 'fighting', 'platformer', 'puzzle'].includes(g.category?.toLowerCase())
     );
 
     const filteredGames = activeFilter === 'all'

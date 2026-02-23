@@ -76,6 +76,8 @@ export default class BasePuzzle extends Phaser.Scene {
 
         // Input
         this.input.on('pointerdown', this.onPointerDown, this);
+        this.input.on('pointermove', this.onPointerMove, this);
+        this.input.on('pointerup', this.onPointerUp, this);
         this.keys = this.input.keyboard.addKeys({ reset: 'R' });
     }
 
@@ -86,11 +88,57 @@ export default class BasePuzzle extends Phaser.Scene {
         if (this.gameConfig.type === 'sokoban') {
             this.movesText.setText('PUSHES: 0');
         }
+
+        this.previewText = this.add.text(400, 550, '', {
+            font: 'bold 36px monospace',
+            fill: '#ffffff',
+            align: 'center',
+            backgroundColor: '#00000088',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5).setScrollFactor(0);
+
+        this.goalText = this.add.text(780, 20, '', {
+            font: 'bold 18px monospace',
+            fill: '#00ff00',
+            align: 'right'
+        }).setOrigin(1, 0).setScrollFactor(0);
+
+        this.setGoalText();
+    }
+
+    setGoalText() {
+        let goal = "";
+        switch (this.gameConfig.type) {
+            case 'match-3': goal = "MATCH 3 BLOCKS"; break;
+            case 'memory-match': goal = "FIND ALL PAIRS"; break;
+            case 'sliding-puzzle': goal = "ARRANGE IN ORDER"; break;
+            case 'line-connect': goal = "CONNECT ALL & FILL GRID"; break;
+            case 'word-connect': goal = "DRAG TO FORM WORDS"; break;
+            case 'number-sum': goal = "SUM CHAIN TO 10"; break;
+            case 'sokoban': goal = "PUSH CORES TO SOCKETS"; break;
+        }
+        this.goalText.setText(`GOAL: ${goal}`);
     }
 
     onPointerDown(pointer) {
         if (this.isGameOver) return;
-        this.grid.handleClick(pointer);
+        if (this.grid && this.grid.handlePointerDown) {
+            this.grid.handlePointerDown(pointer);
+        }
+    }
+
+    onPointerMove(pointer) {
+        if (this.isGameOver || !pointer.isDown) return;
+        if (this.grid && this.grid.handlePointerMove) {
+            this.grid.handlePointerMove(pointer);
+        }
+    }
+
+    onPointerUp(pointer) {
+        if (this.isGameOver) return;
+        if (this.grid && this.grid.handlePointerUp) {
+            this.grid.handlePointerUp(pointer);
+        }
     }
 
     update() {
@@ -106,6 +154,13 @@ export default class BasePuzzle extends Phaser.Scene {
         this.score += amount;
         this.scoreText.setText(`SCORE: ${this.score}`);
         if (this.juice) this.juice.shake(100, 0.01);
+    }
+
+    updatePreview(text, color = 0xffffff) {
+        if (this.previewText) {
+            this.previewText.setText(text);
+            this.previewText.setTint(color);
+        }
     }
 
     useMove() {
